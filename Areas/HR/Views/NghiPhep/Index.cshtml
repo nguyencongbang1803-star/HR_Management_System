@@ -1,0 +1,141 @@
+@model IReadOnlyList<NghiPhep>
+@{
+    ViewData["Title"]="Nghỉ phép";
+    var canDecideIds = (ISet<int>)ViewBag.CanDecideIds;
+}
+
+<div class="page-container">
+    <!-- Panel Tìm kiếm -->
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>Nghỉ phép</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+        <form method="get" data-auto-submit-search>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="custom-label">Trạng thái</label>
+                    <select name="status" class="custom-input form-select">
+                        <option value="">Tất cả</option>
+                        <option value="Pending" selected="@(ViewBag.Status==LeaveStatuses.Pending)">Chờ duyệt</option>
+                        <option value="ManagerApproved" selected="@(ViewBag.Status==ApprovalStatuses.ManagerApproved)">Chờ HR duyệt</option>
+                        <option value="Approved" selected="@(ViewBag.Status==LeaveStatuses.Approved)">Đã duyệt</option>
+                        <option value="Rejected" selected="@(ViewBag.Status==LeaveStatuses.Rejected)">Từ chối</option>
+                        <option value="Cancelled" selected="@(ViewBag.Status==LeaveStatuses.Cancelled)">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="custom-label">Nhân viên</label>
+                    <input name="employeeSearch" value="@ViewBag.EmployeeSearch" class="custom-input"
+                           placeholder="Nhập mã hoặc tên nhân viên" autocomplete="off" />
+                </div>
+                <div class="col-md-4 d-flex justify-content-end gap-3">
+                    <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                </div>
+            </div>
+        </form>
+        </div>
+    </div>
+
+    <!-- Panel Kết quả -->
+    <div class="custom-panel">
+        <a class="btn-green-solid" asp-action="Create">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Tạo đơn nghỉ
+        </a>
+        <div class="record-count">(@Model.Count) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Nhân viên</th>
+                    <th>Loại nghỉ</th>
+                    <th>Thời gian</th>
+                    <th>Số ngày</th>
+                    <th>Lý do/phản hồi</th>
+                    <th>Trạng thái</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var n in Model){
+                    <tr>
+                        <td>
+                            <strong style="color: #4a5468;">@n.NhanVien?.Ten</strong>
+                            <div class="small text-muted">@n.NhanVien?.MaNhanVien</div>
+                        </td>
+                        <td>
+                            <strong>@n.LoaiNghi</strong>
+                            @if(n.LaDotXuat){<div class="small text-danger">Nghỉ khẩn cấp</div>}
+                            @if(n.SoNgayHuongLuong.HasValue){<div class="small text-muted">@n.SoNgayHuongLuong ngày có lương · @n.SoNgayKhongLuong ngày không lương</div>}
+                        </td>
+                        <td>@n.Ngaybatdau.ToString("dd/MM/yyyy")<br/>@n.NgayKetThuc.ToString("dd/MM/yyyy")</td>
+                        <td><strong style="color:#2d3748;">@n.SoNgay</strong></td>
+                        <td>
+                            <div>@n.Lydo</div>
+                            @foreach(var proof in n.MinhChungs){
+                                <div class="file-evidence-item">
+                                    <button type="button" class="file-preview-trigger" data-file-preview data-preview-url="@Url.Action("PreviewEvidence", new { id = proof.ID })" data-download-url="@Url.Action("DownloadEvidence", new { id = proof.ID })" data-file-name="@proof.TenFileGoc" data-content-type="@proof.ContentType">@proof.TenFileGoc</button>
+                                    <a asp-action="DownloadEvidence" asp-route-id="@proof.ID" class="file-download-link">Tải xuống</a>
+                                </div>
+                            }
+                            @if(!string.IsNullOrWhiteSpace(n.PhanHoiQuanLy)){
+                                <div class="small text-muted">Quản lý: @n.PhanHoiQuanLy</div>
+                            }
+                            @if(!string.IsNullOrWhiteSpace(n.PhanHoi)){
+                                <div class="small text-muted">HR: @n.PhanHoi</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge-status @(n.Trangthai==LeaveStatuses.Approved?"status-success":n.Trangthai==LeaveStatuses.Rejected?"status-danger":n.Trangthai is LeaveStatuses.Pending or ApprovalStatuses.ManagerApproved?"status-warning":"")">
+                                @HrmDisplay.Leave(n.Trangthai)
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            @if((n.Trangthai is LeaveStatuses.Pending or ApprovalStatuses.ManagerApproved) && canDecideIds.Contains(n.ID)){
+                                <div class="approval-workflow" data-approval-workflow>
+                                     <div class="approval-decision-actions" data-approval-actions>
+                                         <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                         </button>
+                                         <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                         </button>
+                                     </div>
+                                    <form asp-action="Decide" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                                        <input type="hidden" name="ID" value="@n.ID"/>
+                                        <input type="hidden" name="Decision" data-approval-decision-input/>
+                                        <div class="approval-response-card">
+                                            <div class="approval-modal-header">
+                                                <div class="approval-modal-title">
+                                                    <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                                    <span data-approval-title>Phản hồi khi duyệt</span>
+                                                </div>
+                                                <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                            </div>
+                                            <div class="approval-modal-body">
+                                                <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                                <textarea name="Response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                            </div>
+                                            <div class="approval-modal-footer">
+                                                <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                                <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if(Model.Count==0){
+                    <tr><td colspan="7" class="text-center py-4" style="color:#5c6c85;">Chưa có đơn nghỉ.</td></tr>
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<partial name="_FilePreviewModal" />

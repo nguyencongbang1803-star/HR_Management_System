@@ -1,0 +1,8 @@
+@model int
+@{
+    var active=ViewContext.RouteData.Values["area"]?.ToString()=="Employee"&&ViewContext.RouteData.Values["controller"]?.ToString()=="ThongBao";
+}
+<a asp-area="Employee" asp-controller="ThongBao" asp-action="Index" class="notification-menu-link @(active?"active":null)">
+    <span class="notification-menu-label">Thông báo</span>
+    @if(Model>0){<span class="notification-menu-badge">@(Model>99?"99+":Model)</span>}
+</a>

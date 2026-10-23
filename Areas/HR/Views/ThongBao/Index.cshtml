@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"]="Thông báo";
+    var leaves=(IEnumerable<NghiPhep>)ViewBag.PendingLeaves;
+    var contracts=(IEnumerable<HopDong>)ViewBag.ExpiringContracts;
+}
+
+<div class="page-container">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="custom-panel h-100 mb-0">
+                <div class="panel-header">
+                    <strong style="color: #4a5468; font-size: 16px;">Đơn nghỉ chờ duyệt</strong>
+                    <span class="badge-status status-warning" style="font-size: 12px; padding: 4px 10px;">@leaves.Count()</span>
+                </div>
+                <div class="panel-body px-0 pt-3 pb-0">
+                    @foreach(var x in leaves){
+                        <a class="d-flex justify-content-between align-items-center text-decoration-none border-bottom py-3 px-3 custom-row-hover" asp-controller="YeuCau" asp-action="Index" asp-route-tab="leave">
+                            <div>
+                                <strong style="color: #4a5468;">@x.NhanVien?.Ten</strong>
+                                <small class="d-block text-muted">@x.LoaiNghi · @x.Ngaybatdau.ToString("dd/MM") - @x.NgayKetThuc.ToString("dd/MM")</small>
+                            </div>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </a>
+                    }
+                    @if(!leaves.Any()){
+                        <div class="text-center py-4" style="color:#5c6c85;">Không có đơn chờ duyệt.</div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="custom-panel h-100 mb-0">
+                <div class="panel-header">
+                    <strong style="color: #4a5468; font-size: 16px;">Hợp đồng hết hạn trong 60 ngày</strong>
+                    <span class="badge-status status-danger" style="font-size: 12px; padding: 4px 10px;">@contracts.Count()</span>
+                </div>
+                <div class="panel-body px-0 pt-3 pb-0">
+                    @foreach(var x in contracts){
+                        <a class="d-flex justify-content-between align-items-center text-decoration-none border-bottom py-3 px-3 custom-row-hover" asp-controller="HopDong" asp-action="Edit" asp-route-id="@x.ID">
+                            <div>
+                                <strong style="color: #4a5468;">@x.NhanVien?.Ten</strong>
+                                <small class="d-block text-muted">@x.SoHopDong</small>
+                            </div>
+                            <span class="text-danger fw-medium">@x.Ngayketthuc?.ToString("dd/MM/yyyy")</span>
+                        </a>
+                    }
+                    @if(!contracts.Any()){
+                        <div class="text-center py-4" style="color:#5c6c85;">Không có hợp đồng sắp hết hạn.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .custom-row-hover:hover {
+        background-color: #f7fafc;
+        transition: background-color 0.2s ease;
+    }
+</style>

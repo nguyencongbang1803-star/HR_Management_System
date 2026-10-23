@@ -1,0 +1,107 @@
+@model ContractFormViewModel
+@{
+    var employees = (IEnumerable<NhanVien>)ViewBag.NhanViens;
+    var contractTypes = (IEnumerable<LoaiHopDong>)ViewBag.ContractTypes;
+    var previousContract = (HopDong?)ViewBag.PreviousContract;
+    var currentFiles = (IReadOnlyList<TaiLieuHopDong>?)ViewBag.ContractFiles ?? [];
+    var selectedEmployee = employees.FirstOrDefault(x => x.ID == Model.NhanVienID);
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input asp-for="ID" type="hidden" />
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <label asp-for="NhanVienID" class="custom-label required"></label>
+        @if (Model.HopDongTruocID.HasValue)
+        {
+            <input type="hidden" asp-for="NhanVienID" />
+            <input class="custom-input" value="@selectedEmployee?.MaNhanVien - @selectedEmployee?.Ten" readonly />
+        }
+        else
+        {
+            <select asp-for="NhanVienID" class="custom-input form-select employee-select">
+                <option value="">Chọn nhân viên</option>
+                @foreach (var employee in employees)
+                {
+                    <option value="@employee.ID" data-employee-code="@employee.MaNhanVien" data-employee-name="@employee.Ten">@employee.MaNhanVien - @employee.Ten</option>
+                }
+            </select>
+        }
+        <span asp-validation-for="NhanVienID" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="SoHopDong" class="custom-label required"></label>
+        <input asp-for="SoHopDong" class="custom-input" />
+        <span asp-validation-for="SoHopDong" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Loaihopdong" class="custom-label required"></label>
+        <select asp-for="Loaihopdong" class="custom-input form-select" data-contract-type>
+            <option value="">Chọn loại hợp đồng</option>
+            @foreach (var contractType in contractTypes)
+            {
+                <option value="@contractType.TenLoai">@contractType.TenLoai</option>
+            }
+        </select>
+        <span asp-validation-for="Loaihopdong" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Luongcoban" class="custom-label"></label>
+        <input asp-for="Luongcoban" class="custom-input" type="number" min="0" step="1000" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Ngayky" class="custom-label"></label>
+        <input asp-for="Ngayky" class="custom-input" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Ngaybatdau" class="custom-label"></label>
+        <input asp-for="Ngaybatdau" class="custom-input" />
+    </div>
+    <div class="col-md-4" data-contract-end>
+        <label asp-for="Ngayketthuc" class="custom-label"></label>
+        <input asp-for="Ngayketthuc" class="custom-input" data-contract-end-input />
+        <span asp-validation-for="Ngayketthuc" class="text-danger"></span>
+    </div>
+    @if (Model.ID > 0 || Model.HopDongTruocID.HasValue)
+    {
+        <div class="col-md-6">
+            <label asp-for="HopDongTruocID" class="custom-label"></label>
+            @if (Model.HopDongTruocID.HasValue)
+            {
+                <input type="hidden" asp-for="HopDongTruocID" />
+            }
+            <input class="custom-input" value="@(previousContract?.SoHopDong ?? "Không có")" readonly />
+            <span asp-validation-for="HopDongTruocID" class="text-danger"></span>
+        </div>
+    }
+    <div class="col-md-6">
+        <label asp-for="FilesHopDong" class="custom-label"></label>
+        <input asp-for="FilesHopDong" type="file" multiple class="custom-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+        <span asp-validation-for="FilesHopDong" class="text-danger"></span>
+        <small class="text-muted d-block mt-1">Có thể chọn nhiều ảnh JPG/PNG; PDF và Word vẫn được hỗ trợ.</small>
+        @if (!string.IsNullOrEmpty(Model.TenFileHienTai))
+        {
+            <div class="small mt-2"><a asp-action="Download" asp-route-id="@Model.ID">@Model.TenFileHienTai</a> <span class="text-muted">(file cũ)</span></div>
+        }
+        @foreach (var file in currentFiles)
+        {
+            <div class="border-bottom py-2"><a asp-action="DownloadAttachment" asp-route-id="@file.ID" class="small">@file.TenFileGoc</a></div>
+        }
+    </div>
+    <div class="col-12">
+        <div class="form-check">
+            <input asp-for="Trangthai" class="form-check-input" />
+            <label asp-for="Trangthai" class="form-check-label"></label>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mt-4">
+    <a asp-action="Index" class="btn-green-outline">Hủy</a>
+    @if (Model.ID > 0 && ViewBag.CanRenew is bool canRenew && canRenew)
+    {
+        <a asp-action="Create" asp-route-renewFromId="@Model.ID" class="btn-green-solid">Gia hạn hợp đồng</a>
+    }
+    <button class="btn-green-solid" type="submit">Lưu hợp đồng</button>
+</div>

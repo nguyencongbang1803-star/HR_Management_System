@@ -1,0 +1,84 @@
+@model HopDong
+@{
+    ViewData["Title"] = "Thông tin hợp đồng";
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Thông tin hợp đồng · @Model.SoHopDong</div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="custom-label">Nhân viên</div>
+                <div>@Model.NhanVien?.MaNhanVien - @Model.NhanVien?.Ten</div>
+            </div>
+            <div class="col-md-6">
+                <div class="custom-label">Số hợp đồng</div>
+                <div>@Model.SoHopDong</div>
+            </div>
+            <div class="col-md-6">
+                <div class="custom-label">Loại hợp đồng</div>
+                <div>@Model.Loaihopdong</div>
+            </div>
+            <div class="col-md-6">
+                <div class="custom-label">Hợp đồng trước</div>
+                <div>@(Model.HopDongTruoc?.SoHopDong ?? "Không có")</div>
+            </div>
+            <div class="col-md-4">
+                <div class="custom-label">Ngày ký</div>
+                <div>@Model.Ngayky.ToString("dd/MM/yyyy")</div>
+            </div>
+            <div class="col-md-4">
+                <div class="custom-label">Ngày bắt đầu</div>
+                <div>@Model.Ngaybatdau.ToString("dd/MM/yyyy")</div>
+            </div>
+            <div class="col-md-4">
+                <div class="custom-label">Ngày kết thúc</div>
+                <div>@(Model.Ngayketthuc?.ToString("dd/MM/yyyy") ?? "Không thời hạn")</div>
+            </div>
+            <div class="col-md-6">
+                <div class="custom-label">Lương cơ bản</div>
+                <div>@Model.Luongcoban.ToString("N0") ₫</div>
+            </div>
+            <div class="col-md-6">
+                <div class="custom-label">Trạng thái</div>
+                <span class="badge-status @(Model.Trangthai ? "status-success" : "status-danger")">
+                    @(Model.Trangthai ? "Hiệu lực" : "Ngừng")
+                </span>
+            </div>
+        </div>
+
+        @if (Model.DuongDanFile is not null || Model.TaiLieuHopDongs.Count > 0)
+        {
+            <div class="mt-4">
+                <div class="custom-label">File hợp đồng</div>
+                @if (Model.DuongDanFile is not null)
+                {
+                    <div class="py-2 border-bottom"><a asp-action="Download" asp-route-id="@Model.ID">@(Model.TenFileGoc ?? "File hợp đồng")</a></div>
+                }
+                @foreach (var file in Model.TaiLieuHopDongs.OrderBy(x => x.NgayTaiLen))
+                {
+                    <div class="py-2 border-bottom d-flex justify-content-between align-items-center gap-2">
+                        <div><a asp-action="DownloadAttachment" asp-route-id="@file.ID">@file.TenFileGoc</a><small class="text-muted ms-2">@((file.KichThuoc / 1024d).ToString("N0")) KB</small></div>
+                        @if (User.IsInRole("Admin") || User.IsInRole("HR"))
+                        {
+                            <form asp-action="DeleteAttachment" method="post" class="m-0"><input type="hidden" name="id" value="@file.ID"/><button type="submit" class="btn-green-outline text-danger py-1" onclick="return confirm('Xóa file hợp đồng này?');">Xóa</button></form>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="d-flex justify-content-end flex-wrap gap-3 mt-4">
+            <a asp-action="Index" class="btn-green-outline">Quay lại</a>
+            @if (User.IsInRole("Admin") || User.IsInRole("HR"))
+            {
+                <a asp-action="Edit" asp-route-id="@Model.ID" class="btn-green-outline">Sửa</a>
+                @if ((bool)ViewBag.CanRenew)
+                {
+                    <a asp-action="Create" asp-route-renewFromId="@Model.ID" class="btn-green-solid">Gia hạn hợp đồng</a>
+                }
+            }
+        </div>
+    </div>
+</div>

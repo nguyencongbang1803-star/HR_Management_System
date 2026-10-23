@@ -1,0 +1,111 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan";
+}
+
+<div class="page-container">
+    <section class="dashboard-welcome">
+        <div class="dashboard-welcome-copy">
+            <span class="dashboard-kicker">Bảng điều khiển nhân sự</span>
+            <h2>Chào mừng trở lại!</h2>
+            <p>Nắm bắt nhanh tình hình nhân sự và các đầu việc cần xử lý hôm nay.</p>
+        </div>
+        <div class="dashboard-welcome-actions">
+            <a class="btn" asp-controller="NhanVien" asp-action="Create">+ Thêm nhân viên</a>
+        </div>
+    </section>
+
+    <section class="hrm-metric-grid" aria-label="Chỉ số nhân sự">
+        <article class="hrm-metric-card">
+            <div class="hrm-metric-icon" aria-hidden="true">NV</div>
+            <div class="hrm-metric-label">Nhân viên hoạt động</div>
+            <div class="hrm-metric-value">@Model.ActiveEmployees</div>
+            <div class="hrm-metric-note">Hồ sơ hiện hành</div>
+        </article>
+        <article class="hrm-metric-card is-green">
+            <div class="hrm-metric-icon" aria-hidden="true">PB</div>
+            <div class="hrm-metric-label">Phòng ban</div>
+            <div class="hrm-metric-value">@Model.Departments</div>
+            <div class="hrm-metric-note">Cơ cấu tổ chức</div>
+        </article>
+        <article class="hrm-metric-card is-blue">
+            <div class="hrm-metric-icon" aria-hidden="true">NP</div>
+            <div class="hrm-metric-label">Đơn phép chờ duyệt</div>
+            <div class="hrm-metric-value">@Model.PendingLeaves</div>
+            <div class="hrm-metric-note">Cần xử lý</div>
+        </article>
+        <article class="hrm-metric-card is-purple">
+            <div class="hrm-metric-icon" aria-hidden="true">HĐ</div>
+            <div class="hrm-metric-label">Hợp đồng sắp hết hạn</div>
+            <div class="hrm-metric-value">@Model.ExpiringContracts</div>
+            <div class="hrm-metric-note">Trong 60 ngày</div>
+        </article>
+        <article class="hrm-metric-card is-rose">
+            <div class="hrm-metric-icon" aria-hidden="true">₫</div>
+            <div class="hrm-metric-label">Lương tháng này</div>
+            <div class="hrm-metric-value">@Model.CurrentPayroll.ToString("N0") ₫</div>
+            <div class="hrm-metric-note">Tổng thực lĩnh</div>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="custom-panel dashboard-panel">
+            <div class="panel-header">
+                <strong class="dashboard-panel-title">Đơn nghỉ gần đây</strong>
+                <a asp-controller="YeuCau" asp-action="Index" asp-route-tab="leave" class="btn-green-outline">Xem tất cả</a>
+            </div>
+            <div class="table-wrapper">
+                <table class="custom-table mb-0">
+                    <thead>
+                        <tr><th>Nhân viên</th><th>Thời gian</th><th>Trạng thái</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.RecentLeaves)
+                    {
+                        <tr>
+                            <td><strong>@item.NhanVien?.Ten</strong></td>
+                            <td>@item.Ngaybatdau.ToString("dd/MM") - @item.NgayKetThuc.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge-status @(item.Trangthai == LeaveStatuses.Approved ? "status-success" : item.Trangthai == LeaveStatuses.Rejected ? "status-danger" : "status-warning")">
+                                    @HrmDisplay.Leave(item.Trangthai)
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.RecentLeaves.Count == 0)
+                    {
+                        <tr><td colspan="3" class="text-center py-4 text-muted">Chưa có đơn nghỉ.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="custom-panel dashboard-panel">
+            <div class="panel-header">
+                <strong class="dashboard-panel-title">Hợp đồng sắp hết hạn</strong>
+                <a asp-controller="HopDong" asp-action="Index" class="btn-green-outline">Xem tất cả</a>
+            </div>
+            <div class="table-wrapper">
+                <table class="custom-table mb-0">
+                    <thead>
+                        <tr><th>Nhân viên</th><th>Hết hạn</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.ContractsExpiringSoon)
+                    {
+                        <tr>
+                            <td><strong>@item.NhanVien?.Ten</strong><div class="small text-muted">@item.SoHopDong</div></td>
+                            <td class="text-danger fw-bold">@item.Ngayketthuc?.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                    @if (Model.ContractsExpiringSoon.Count == 0)
+                    {
+                        <tr><td colspan="2" class="text-center py-4 text-muted">Không có hợp đồng sắp hết hạn.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>

@@ -1,0 +1,172 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #f4f7fb;
+}
+
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background: #0f4c81;
+  color: white;
+  padding: 25px 0;
+}
+
+.logo {
+  padding: 0 25px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo h2 {
+  font-size: 28px;
+}
+
+.logo p {
+  margin-top: 5px;
+  color: #d6e9ff;
+}
+
+.menu {
+  list-style: none;
+  margin-top: 25px;
+}
+
+.menu li {
+  padding: 15px 25px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.menu li:hover,
+.menu li.active {
+  background: #1e88e5;
+}
+
+.menu li.logout {
+  margin-top: 30px;
+  background: #d9534f;
+}
+
+.main-content {
+  flex: 1;
+  padding: 30px;
+}
+
+.topbar {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 {
+  color: #0f4c81;
+  margin-bottom: 8px;
+}
+
+.topbar p {
+  color: #777;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: bold;
+}
+
+.avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #0f4c81;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin: 25px 0;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.card h3 {
+  color: #555;
+  font-size: 16px;
+}
+
+.card p {
+  margin-top: 15px;
+  font-size: 34px;
+  font-weight: bold;
+  color: #0f4c81;
+}
+
+.content-box {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+}
+
+.content-box h2 {
+  color: #0f4c81;
+  margin-bottom: 20px;
+}
+
+.function-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.function-item {
+  padding: 25px;
+  background: #f4f7fb;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.function-item:hover {
+  background: #1e88e5;
+  color: white;
+}
+
+@media (max-width: 900px) {
+  .admin-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .cards,
+  .function-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

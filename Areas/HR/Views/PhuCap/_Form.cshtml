@@ -1,0 +1,22 @@
+@model ScopedAllowanceFormViewModel
+@{
+    var departments = (IEnumerable<PhongBan>)ViewBag.PhongBans;
+    var positions = (IEnumerable<ChucVu>)ViewBag.ChucVus;
+    var employees = (IEnumerable<NhanVien>)ViewBag.NhanViens;
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input asp-for="ID" type="hidden"/>
+<div class="row g-4" data-allowance-form>
+    <div class="col-md-6"><label asp-for="TenPhuCap" class="custom-label required"></label><input asp-for="TenPhuCap" class="custom-input"/><span asp-validation-for="TenPhuCap" class="text-danger"></span></div>
+    <div class="col-md-6"><label asp-for="SoTien" class="custom-label required"></label><input asp-for="SoTien" type="number" min="1" step="1000" class="custom-input"/><span asp-validation-for="SoTien" class="text-danger"></span></div>
+    <div class="col-md-6"><label asp-for="PhamVi" class="custom-label required"></label><select asp-for="PhamVi" class="custom-input form-select" data-allowance-scope><option value="Company">Toàn công ty</option><option value="Department">Phòng ban</option><option value="Position">Chức vụ</option><option value="Employee">Nhân viên</option></select></div>
+    <div class="col-md-6" data-scope-target="Department"><label class="custom-label required">Phòng ban</label><select asp-for="PhongBanID" class="custom-input form-select"><option value="">Chọn phòng ban</option>@foreach(var x in departments){<option value="@x.ID">@x.Tenphongban</option>}</select><span asp-validation-for="PhongBanID" class="text-danger"></span></div>
+    <div class="col-md-6" data-scope-target="Position"><label class="custom-label required">Chức vụ</label><select asp-for="ChucVuID" class="custom-input form-select"><option value="">Chọn chức vụ</option>@foreach(var x in positions){<option value="@x.ID">@x.Chucvu</option>}</select><span asp-validation-for="ChucVuID" class="text-danger"></span></div>
+    <div class="col-md-6" data-scope-target="Employee"><label class="custom-label required">Nhân viên</label><select asp-for="NhanVienID" class="custom-input form-select"><option value="">Chọn nhân viên</option>@foreach(var x in employees){<option value="@x.ID">@x.MaNhanVien - @x.Ten</option>}</select><span asp-validation-for="NhanVienID" class="text-danger"></span></div>
+    <div class="col-md-6"><label asp-for="NgayBatDau" class="custom-label required"></label><input asp-for="NgayBatDau" class="custom-input"/></div>
+    <div class="col-md-6"><label asp-for="KieuThoiHan" class="custom-label required"></label><select asp-for="KieuThoiHan" class="custom-input form-select" data-allowance-duration><option value="Monthly">Mỗi tháng</option><option value="FixedMonths">Số tháng cố định</option></select></div>
+    <div class="col-md-6" data-fixed-months><label asp-for="SoThang" class="custom-label required"></label><input asp-for="SoThang" type="number" min="1" max="120" placeholder="Ví dụ: 1, 2, 3" class="custom-input"/><span asp-validation-for="SoThang" class="text-danger"></span></div>
+    <div class="col-12"><div class="form-check"><input asp-for="HoatDong" class="form-check-input"/><label asp-for="HoatDong" class="form-check-label">Đang áp dụng</label></div></div>
+</div>
+<div class="d-flex justify-content-end gap-3 mt-4"><a asp-action="Index" class="btn-green-outline">Hủy</a><button class="btn-green-solid">Lưu phụ cấp</button></div>

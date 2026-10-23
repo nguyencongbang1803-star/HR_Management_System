@@ -1,0 +1,171 @@
+@model IReadOnlyList<Luong>
+@{
+    ViewData["Title"]="Bảng lương";
+    var hasDraft=Model.Any(x=>x.TrangThai==PayrollStatuses.Draft);
+    var hasReconciled=Model.Any(x=>x.TrangThai==PayrollStatuses.Reconciled);
+    var hasLocked=Model.Any(x=>x.TrangThai==PayrollStatuses.Locked);
+    var readiness=(QLNS.Services.PayrollReadinessReport)ViewBag.Readiness;
+}
+
+<div class="page-container">
+    <!-- Panel Tìm kiếm -->
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>Bảng lương @ViewBag.Thang/@ViewBag.Nam</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search>
+                <div class="row g-4 align-items-end">
+                    <div class="col-md-3">
+                        <label class="custom-label">Tháng</label>
+                        <input name="thang" type="number" min="1" max="12" value="@ViewBag.Thang" class="custom-input"/>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Năm</label>
+                        <input name="nam" type="number" min="2000" max="2200" value="@ViewBag.Nam" class="custom-input"/>
+                    </div>
+                    <div class="col-md-6 d-flex justify-content-end gap-3">
+                        <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="custom-panel">
+        <div class="panel-header"><strong>Kiểm tra dữ liệu trước khi tính tự động</strong></div>
+        <div class="row g-3">
+            <div class="col-md"><a class="payroll-readiness-card" asp-area="HR" asp-controller="YeuCau" asp-action="Index" asp-route-tab="leave" aria-label="Mở danh sách đơn nghỉ chờ duyệt"><small class="text-muted d-block">Đơn nghỉ chờ duyệt</small><strong>@readiness.PendingLeaves</strong></a></div>
+            <div class="col-md"><a class="payroll-readiness-card" asp-area="HR" asp-controller="YeuCau" asp-action="Index" asp-route-tab="overtime" aria-label="Mở danh sách tăng ca chờ xử lý"><small class="text-muted d-block">OT chờ xử lý</small><strong>@readiness.PendingOvertime</strong></a></div>
+            <div class="col-md"><a class="payroll-readiness-card" asp-area="HR" asp-controller="YeuCau" asp-action="Index" asp-route-tab="attendance" aria-label="Mở danh sách sửa công chờ duyệt"><small class="text-muted d-block">Sửa công chờ duyệt</small><strong>@readiness.PendingAttendanceAdjustments</strong></a></div>
+            <div class="col-md"><a class="payroll-readiness-card" asp-area="HR" asp-controller="ChamCong" asp-action="Index" asp-route-thang="@ViewBag.Thang" asp-route-nam="@ViewBag.Nam" asp-route-incompleteOnly="true" aria-label="Mở các ngày chấm công thiếu giờ"><small class="text-muted d-block">Ngày thiếu giờ (0 công)</small><strong>@readiness.IncompleteAttendance</strong></a></div>
+            <div class="col-md"><a class="payroll-readiness-card" asp-area="HR" asp-controller="NhanVien" asp-action="Index" asp-route-withoutContract="true" asp-route-contractMonth="@ViewBag.Thang" asp-route-contractYear="@ViewBag.Nam" aria-label="Mở danh sách nhân viên thiếu hợp đồng"><small class="text-muted d-block">Nhân viên thiếu hợp đồng</small><strong>@readiness.EmployeesWithoutContract</strong></a></div>
+        </div>
+        @if(readiness.CanCalculate)
+        {
+            <div class="alert alert-success mt-3 mb-0">
+                Dữ liệu phê duyệt đã hoàn tất. Có thể tính lương tự động.
+                @if(readiness.IncompleteAttendance > 0)
+                {
+                    <span>Có @readiness.IncompleteAttendance ngày thiếu giờ vào hoặc giờ ra; các ngày này được tính 0 công.</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning mt-3 mb-0">@readiness.BlockingMessage</div>
+        }
+    </div>
+
+    <div class="custom-panel">
+        <div class="d-flex flex-wrap gap-3 align-items-end">
+            <form asp-action="TinhLuong" method="post" class="d-flex gap-3 align-items-end m-0">
+                <input type="hidden" name="thang" value="@ViewBag.Thang"/>
+                <input type="hidden" name="nam" value="@ViewBag.Nam"/>
+                <div>
+                    <label class="custom-label mb-1">Quy tắc áp dụng</label>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge-status status-info">22 ngày/tháng</span>
+                        <span class="badge-status status-info">8 giờ/ngày</span>
+                        <span class="badge-status status-info">Thiếu vào/ra: 0 công</span>
+                        <span class="badge-status status-info">BH 10,5%</span>
+                        <span class="badge-status status-info">OT theo hệ số đã duyệt</span>
+                    </div>
+                </div>
+                <button class="btn-green-solid" @(!readiness.CanCalculate?"disabled":null)
+                        onclick="return confirm('Hệ thống sẽ tổng hợp toàn bộ dữ liệu và tạo lại bảng lương nháp của kỳ này. Tiếp tục?')">
+                    Xuất bản lương
+                </button>
+            </form>
+
+            @if(hasDraft){
+                <form asp-action="ReconcilePeriod" method="post" class="m-0">
+                    <input type="hidden" name="thang" value="@ViewBag.Thang"/>
+                    <input type="hidden" name="nam" value="@ViewBag.Nam"/>
+                    <button class="btn-green-outline">Xác nhận đối soát</button>
+                </form>
+            }
+            @if(hasReconciled){
+                <form asp-action="ReopenPeriod" method="post" class="d-flex gap-2 m-0">
+                    <input type="hidden" name="thang" value="@ViewBag.Thang"/>
+                    <input type="hidden" name="nam" value="@ViewBag.Nam"/>
+                    <input name="reason" class="custom-input" maxlength="500" placeholder="Lý do mở lại/khiếu nại"/>
+                    <button class="btn-green-outline">Mở lại để điều chỉnh</button>
+                </form>
+            }
+            @if(hasReconciled&&User.IsInRole("Admin")){
+                <form asp-action="LockPeriod" method="post" class="m-0">
+                    <input type="hidden" name="thang" value="@ViewBag.Thang"/>
+                    <input type="hidden" name="nam" value="@ViewBag.Nam"/>
+                    <button class="btn-green-solid" style="background-color: #f6ad55; color: white;" onclick="return confirm('Khóa kỳ lương và dữ liệu công?')">Khóa kỳ lương</button>
+                </form>
+            }
+            @if(hasLocked&&User.IsInRole("Admin")){
+                <form asp-action="MarkPaid" method="post" class="m-0">
+                    <input type="hidden" name="thang" value="@ViewBag.Thang"/>
+                    <input type="hidden" name="nam" value="@ViewBag.Nam"/>
+                    <button class="btn-green-solid" style="background-color: #48bb78; color: white;">Đánh dấu đã trả</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="custom-panel">
+        <a class="btn-green-outline" asp-controller="BaoCao" asp-action="ExportPayroll" asp-route-thang="@ViewBag.Thang" asp-route-nam="@ViewBag.Nam" style="text-decoration:none;">Xuất CSV</a>
+        <div class="record-count">(@Model.Count) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Nhân viên</th>
+                    <th>Ngày công</th>
+                    <th>Lương cơ bản</th>
+                    <th>Hệ số</th>
+                    <th>Lương theo công</th>
+                    <th>Phụ cấp</th>
+                    <th>Thưởng</th>
+                    <th>Thu nhập khác</th>
+                    <th>OT</th>
+                    <th>Khấu trừ</th>
+                    <th>Bảo hiểm</th>
+                    <th>Thực lĩnh</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var l in Model){
+                    <tr>
+                        <td>
+                            <strong style="color: #4a5468;">@l.NhanVien?.Ten</strong>
+                            <div class="small text-muted">@l.NhanVien?.MaNhanVien</div>
+                        </td>
+                        <td>@l.SoNgayCong/@l.SoNgayChuan</td>
+                        <td>@l.Luongcoban.ToString("N0")</td>
+                        <td>@l.HeSoLuong.ToString("0.##")</td>
+                        <td>@(l.SoNgayChuan>0?Math.Round(l.Luongcoban*l.HeSoLuong/l.SoNgayChuan*l.SoNgayCong,0).ToString("N0"):"0")</td>
+                        <td>@l.Phucap.ToString("N0")</td>
+                        <td class="text-success">@l.Thuong.ToString("N0")</td>
+                        <td class="text-success">@l.ThuNhapKhac.ToString("N0")</td>
+                        <td class="text-success">
+                            @l.TienTangCa.ToString("N0")
+                            <small class="d-block text-muted">@l.SoGioTangCa giờ</small>
+                        </td>
+                        <td class="text-danger">@l.Khautru.ToString("N0")</td>
+                        <td class="text-danger">@l.BaoHiem.ToString("N0")</td>
+                        <td><strong style="color:#2d3748;">@l.Tongluong.ToString("N0") ₫</strong></td>
+                        <td>
+                            <span class="badge-status @(l.TrangThai==PayrollStatuses.Paid?"status-success":l.TrangThai==PayrollStatuses.Locked?"status-warning":"status-info")">
+                                @HrmDisplay.Payroll(l.TrangThai)
+                            </span>
+                        </td>
+                    </tr>
+                }
+                @if(Model.Count==0){
+                    <tr><td colspan="13" class="text-center py-4" style="color:#5c6c85;">Chưa có bảng lương. Hãy hoàn tất dữ liệu công, phép, OT và bấm “Tính lương tự động”.</td></tr>
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>
+</div>

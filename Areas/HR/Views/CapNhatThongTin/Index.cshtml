@@ -1,0 +1,61 @@
+@model IReadOnlyList<YeuCauCapNhatThongTinCaNhan>
+@{ ViewData["Title"] = "Duyệt thay đổi thông tin cá nhân"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Yêu cầu thay đổi hồ sơ</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead><tr><th>Nhân viên</th><th>Thông tin đề xuất</th><th>Lý do</th><th>Trạng thái</th><th>Xử lý</th></tr></thead>
+                <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td><strong>@x.NhanVien?.Ten</strong><div class="small text-muted">@x.NhanVien?.MaNhanVien</div></td>
+                        <td><small>Email: @(x.Email ?? "—")<br/>SĐT: @(x.SDT ?? "—") · CCCD: @(x.CanCuocCongDan ?? "—")<br/>Ngày sinh: @(x.NgaySinh?.ToString("dd/MM/yyyy") ?? "—") · MST: @(x.MaSoThue ?? "—")<br/>Địa chỉ: @(x.DiaChi ?? "—")</small></td>
+                        <td>@x.LyDo</td>
+                        <td><span class="badge-status @(x.TrangThai == ApprovalStatuses.Approved ? "status-success" : x.TrangThai == ApprovalStatuses.Rejected ? "status-danger" : "status-warning")">@HrmDisplay.Leave(x.TrangThai)</span></td>
+                        <td>
+                            @if (x.TrangThai == ApprovalStatuses.Pending)
+                            {
+                                <div class="approval-workflow" data-approval-workflow>
+                                     <div class="approval-decision-actions" data-approval-actions>
+                                         <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                         </button>
+                                         <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                         </button>
+                                     </div>
+                                    <form asp-action="Decide" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                                        <input type="hidden" name="id" value="@x.ID"/>
+                                        <input type="hidden" name="decision" data-approval-decision-input/>
+                                        <div class="approval-response-card">
+                                            <div class="approval-modal-header">
+                                                <div class="approval-modal-title">
+                                                    <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                                    <span data-approval-title>Phản hồi khi duyệt</span>
+                                                </div>
+                                                <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                            </div>
+                                            <div class="approval-modal-body">
+                                                <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                                <textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                            </div>
+                                            <div class="approval-modal-footer">
+                                                <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                                <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted">Không có yêu cầu.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

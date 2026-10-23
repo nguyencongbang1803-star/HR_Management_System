@@ -1,0 +1,155 @@
+@model NhanVien
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+    var canEdit = User.IsInRole("Admin") || User.IsInRole("HR");
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">
+            <div class="d-flex align-items-center gap-3">
+                @if (!string.IsNullOrWhiteSpace(Model.AnhDaiDien))
+                {
+                    <img class="employee-avatar employee-avatar-lg" src="@Url.Action("Employee", "Avatar", new { area = "", id = Model.ID, v = Model.AnhDaiDien })" alt="Ảnh đại diện của @Model.Ten" />
+                }
+                else
+                {
+                    <span class="employee-avatar employee-avatar-lg employee-avatar-placeholder" aria-hidden="true">@Model.Ten.Trim()[0].ToString().ToUpperInvariant()</span>
+                }
+                <span>@Model.Ten · @Model.MaNhanVien</span>
+            </div>
+            <span class="badge-status @(Model.Trangthai ? "status-success" : "status-danger")">@(Model.Trangthai ? "Đang làm việc" : "Đã nghỉ việc")</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <span class="text-muted">@(Model.PhongBan?.Tenphongban ?? "Chưa có phòng ban") · @(Model.ChucVu?.Chucvu ?? "Chưa có chức vụ")</span>
+            @if (canEdit)
+            {
+                <a class="btn-green-solid" asp-action="Edit" asp-route-id="@Model.ID" style="text-decoration:none;">Chỉnh sửa hồ sơ</a>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <section class="custom-panel h-100 mb-0">
+                <div class="panel-header">Thông tin cá nhân</div>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@(Model.Email ?? "—")</dd>
+                    <dt class="col-sm-4">Điện thoại</dt><dd class="col-sm-8">@(Model.SDT ?? "—")</dd>
+                    <dt class="col-sm-4">Ngày sinh</dt><dd class="col-sm-8">@(Model.NgaySinh?.ToString("dd/MM/yyyy") ?? "—")</dd>
+                    <dt class="col-sm-4">CCCD/Hộ chiếu</dt><dd class="col-sm-8">@(Model.CanCuocCongDan ?? "—")</dd>
+                    <dt class="col-sm-4">Ngày vào làm</dt><dd class="col-sm-8">@Model.Ngayvaolam.ToString("dd/MM/yyyy")</dd>
+                    <dt class="col-sm-4">Địa chỉ</dt><dd class="col-sm-8">@(Model.DiaChi ?? "—")</dd>
+                </dl>
+            </section>
+        </div>
+        <div class="col-lg-6">
+            <section class="custom-panel h-100 mb-0">
+                <div class="panel-header">
+                    <span>Hợp đồng</span>
+                    @if (canEdit)
+                    {
+                        <a asp-controller="HopDong" asp-action="Create" class="btn-green-outline py-1 px-3">Thêm</a>
+                    }
+                </div>
+                @foreach (var contract in Model.HopDongs)
+                {
+                    <div class="border-bottom pb-3 mb-3">
+                        <strong>@contract.SoHopDong</strong> · @(contract.Trangthai ? "Hiệu lực" : "Ngừng")
+                        <div class="small text-muted">@contract.Loaihopdong · @contract.Ngaybatdau.ToString("dd/MM/yyyy") - @(contract.Ngayketthuc?.ToString("dd/MM/yyyy") ?? "Không thời hạn")</div>
+                        @if (contract.DuongDanFile is not null)
+                        {
+                            <a asp-controller="HopDong" asp-action="Download" asp-route-id="@contract.ID" class="small">Tải file hợp đồng</a>
+                        }
+                        @foreach (var file in contract.TaiLieuHopDongs)
+                        {
+                            <a asp-controller="HopDong" asp-action="DownloadAttachment" asp-route-id="@file.ID" class="small d-block">@file.TenFileGoc</a>
+                        }
+                    </div>
+                }
+                @if (Model.HopDongs.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">Chưa có hợp đồng.</div>
+                }
+            </section>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-0">
+        <div class="col-12">
+            <section class="custom-panel h-100 mb-0">
+                <div class="panel-header">Bằng cấp & chứng chỉ</div>
+                @foreach (var qualification in Model.TrinhDoChungChis)
+                {
+                    <div class="border-bottom py-2">
+                        <strong>@qualification.Ten</strong>
+                        <div class="small text-muted">@(qualification.Loai == "BangCap" ? "Bằng cấp" : "Chứng chỉ") · @qualification.DonViCap · @qualification.NgayCap?.ToString("dd/MM/yyyy")</div>
+                    </div>
+                }
+                @if (canEdit)
+                {
+                    <form asp-area="HR" asp-controller="HoSo" asp-action="AddQualification" method="post" class="row g-3 mt-2">
+                        <input type="hidden" name="NhanVienID" value="@Model.ID" />
+                        <div class="col-md-4"><select name="Loai" class="custom-input form-select"><option value="BangCap">Bằng cấp</option><option value="ChungChi">Chứng chỉ</option></select></div>
+                        <div class="col-md-8"><input name="Ten" class="custom-input" required placeholder="Tên văn bằng" /></div>
+                        <div class="col-md-4"><input name="DonViCap" class="custom-input" placeholder="Đơn vị cấp" /></div>
+                        <div class="col-md-4"><input name="NgayCap" type="date" class="custom-input" /></div>
+                        <div class="col-md-4"><input name="NgayHetHan" type="date" class="custom-input" /></div>
+                        <div class="col-12 text-end"><button class="btn-green-solid">Thêm</button></div>
+                    </form>
+                }
+            </section>
+        </div>
+    </div>
+
+    <section class="custom-panel mt-4">
+        <div class="panel-header">Tài liệu nhân viên</div>
+        @foreach (var document in Model.TaiLieuNhanViens)
+        {
+            <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                <span><strong>@document.TenTaiLieu</strong><small class="d-block text-muted">@document.TenFileGoc · @((document.KichThuoc / 1024d).ToString("N0")) KB</small></span>
+                <span class="d-flex gap-2">
+                    <a class="btn-green-outline py-1 px-3" asp-controller="HoSo" asp-action="DownloadDocument" asp-route-id="@document.ID">Tải xuống</a>
+                    @if (canEdit)
+                    {
+                        <form asp-controller="HoSo" asp-action="DeleteDocument" asp-route-id="@document.ID" method="post"><button class="btn-green-outline py-1 px-3 text-danger">Xóa</button></form>
+                    }
+                </span>
+            </div>
+        }
+        @if (canEdit)
+        {
+            <form asp-controller="HoSo" asp-action="UploadDocument" method="post" enctype="multipart/form-data" class="row g-3 mt-2">
+                <input type="hidden" name="NhanVienID" value="@Model.ID" />
+                <div class="col-md-5"><input name="TenTaiLieu" required class="custom-input" placeholder="Tên tài liệu" /></div>
+                <div class="col-md-5">
+                    <input name="Files" required multiple type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="custom-input" />
+                    <small class="text-muted">Có thể chọn nhiều tệp PDF, Word hoặc hình ảnh.</small>
+                </div>
+                <div class="col-md-2"><button class="btn-green-solid w-100">Tải lên</button></div>
+            </form>
+        }
+    </section>
+
+    <section class="custom-panel">
+        <div class="panel-header">
+            <span>Lịch sử nghỉ gần nhất</span>
+            <a asp-controller="NghiPhep" asp-action="Index" asp-route-employeeId="@Model.ID" class="btn-green-outline py-1 px-3">Xem tất cả</a>
+        </div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead><tr><th>Loại</th><th>Thời gian</th><th>Số ngày</th><th>Trạng thái</th></tr></thead>
+                <tbody>
+                    @foreach (var leave in Model.NghiPheps)
+                    {
+                        <tr><td>@leave.LoaiNghi</td><td>@leave.Ngaybatdau.ToString("dd/MM/yyyy") - @leave.NgayKetThuc.ToString("dd/MM/yyyy")</td><td>@leave.SoNgay</td><td>@HrmDisplay.Leave(leave.Trangthai)</td></tr>
+                    }
+                    @if (Model.NghiPheps.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-4">Chưa có lịch sử nghỉ phép.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

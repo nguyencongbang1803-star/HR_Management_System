@@ -1,0 +1,173 @@
+@model IReadOnlyList<ChamCong>
+@{
+    var isManagerOnly = User.IsInRole("QuanLy") && !User.IsInRole("HR") && !User.IsInRole("Admin");
+    ViewData["Title"] = isManagerOnly ? "Chấm công phòng ban" : "Chấm công";
+    var selectedStatus = ViewBag.TrangThai as string;
+}
+
+<div class="page-container">
+    <!-- Panel Tìm kiếm -->
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>@ViewData["Title"]</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="custom-label">Ngày</label>
+                        <input name="ngay" type="date" value="@ViewBag.Ngay" class="custom-input" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="custom-label">Tháng</label>
+                        <input name="thang" type="number" min="1" max="12" value="@ViewBag.Thang" class="custom-input" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="custom-label">Năm</label>
+                        <input name="nam" type="number" min="2000" max="2200" value="@ViewBag.Nam" class="custom-input" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Nhân viên</label>
+                        <input name="employeeSearch" value="@ViewBag.EmployeeSearch" class="custom-input"
+                               placeholder="Nhập mã hoặc tên nhân viên" autocomplete="off" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Trạng thái</label>
+                        <select name="trangThai" class="custom-input">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="OnTime" selected="@(selectedStatus == "OnTime")">Đi làm đúng giờ</option>
+                            <option value="Late" selected="@(selectedStatus == "Late")">Đi trễ</option>
+                            <option value="Incomplete" selected="@(selectedStatus == "Incomplete")">Thiếu giờ vào hoặc giờ ra</option>
+                            <option value="@AttendanceStatuses.PaidLeave" selected="@(selectedStatus == AttendanceStatuses.PaidLeave)">Nghỉ có lương</option>
+                            <option value="@AttendanceStatuses.UnpaidLeave" selected="@(selectedStatus == AttendanceStatuses.UnpaidLeave)">Nghỉ không lương</option>
+                            <option value="@AttendanceStatuses.Absent" selected="@(selectedStatus == AttendanceStatuses.Absent)">Vắng mặt</option>
+                            <option value="@AttendanceStatuses.Remote" selected="@(selectedStatus == AttendanceStatuses.Remote)">Làm việc từ xa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn-green-solid">Lọc</button>
+                        <a class="btn-green-outline" asp-action="Index">Đặt lại</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(ViewBag.Ngay as string) || !string.IsNullOrWhiteSpace(selectedStatus))
+    {
+        <div class="alert alert-info">
+            Đang lọc dữ liệu
+            @if (!string.IsNullOrWhiteSpace(ViewBag.Ngay as string))
+            {
+                <span>ngày @DateTime.Parse((string)ViewBag.Ngay).ToString("dd/MM/yyyy")</span>
+            }
+            @if (selectedStatus == "Incomplete")
+            {
+                <span>. Các ngày thiếu giờ vào hoặc giờ ra được tính 0 công.</span>
+            }
+        </div>
+    }
+
+    @if(User.IsInRole("Admin") || User.IsInRole("HR"))
+    {
+        <div class="custom-panel">
+            <form asp-action="ImportCsv" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-3 align-items-center m-0">
+                <label class="custom-label mb-0 fw-semibold">Nhập CSV Chấm công:</label>
+                <input type="file" name="file" accept=".csv" required class="custom-input" style="max-width:300px"/>
+                <button class="btn-green-outline">Nhập CSV</button>
+                <small class="text-muted ms-auto">Cột: MaNhanVien, Ngay, GioVao, GioRa, TrangThai</small>
+            </form>
+        </div>
+    }
+
+    <!-- Panel Kết quả -->
+    <div class="custom-panel">
+        @if (User.IsInRole("Admin") || User.IsInRole("HR"))
+        {
+            <a class="btn-green-solid" asp-action="Create">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Ghi chấm công
+            </a>
+        }
+        <div class="record-count">Tìm thấy @Model.Count bản ghi</div>
+
+        <div class="table-wrapper">
+            <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Ngày</th>
+                    <th>Nhân viên</th>
+                    <th>Trạng thái</th>
+                    <th>Giờ vào</th>
+                    <th>Giờ ra</th>
+                    <th>Số giờ</th>
+                    <th>Vi phạm ca</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    var isIncomplete = (c.TrangThai is AttendanceStatuses.Present or AttendanceStatuses.Remote or AttendanceStatuses.BusinessTrip)
+                        && (!c.Giovaolam.HasValue || !c.Giotanlam.HasValue);
+                    var displayStatus = isIncomplete
+                        ? "Thiếu chấm công"
+                        : c.PhutDiMuon > 0
+                            ? "Đi trễ"
+                            : HrmDisplay.Attendance(c.TrangThai);
+                    var statusClass = isIncomplete || c.TrangThai == AttendanceStatuses.Absent
+                        ? "status-danger"
+                        : c.PhutDiMuon > 0 || c.TrangThai is AttendanceStatuses.PaidLeave or AttendanceStatuses.UnpaidLeave
+                            ? "status-warning"
+                            : "status-success";
+                    <tr>
+                        <td>@c.Ngay.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            <strong>@c.NhanVien?.Ten</strong>
+                            <div class="small text-muted">@c.NhanVien?.MaNhanVien</div>
+                        </td>
+                        <td>
+                            <span class="badge-status @statusClass">@displayStatus</span>
+                        </td>
+                        <td>@c.Giovaolam?.ToString("HH:mm")</td>
+                        <td>@c.Giotanlam?.ToString("HH:mm")</td>
+                        <td>@c.SoGioLam?.ToString("0.##")</td>
+                        <td>
+                            @if(c.PhutDiMuon > 0)
+                            {
+                                <span class="text-danger small d-block">Muộn @c.PhutDiMuon phút</span>
+                            }
+                            @if(c.PhutVeSom > 0)
+                            {
+                                <span class="text-warning small d-block">Sớm @c.PhutVeSom phút</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if(User.IsInRole("Admin") || User.IsInRole("HR"))
+                            {
+                                <div class="d-flex justify-content-center">
+                                    <a asp-action="Edit" asp-route-id="@c.ID" class="action-btn" title="Sửa" style="text-decoration:none;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@c.ID" method="post" onsubmit="return confirm('Xóa bản chấm công?')" class="m-0">
+                                        <button class="action-btn" title="Xóa">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-4" style="color:#5c6c85;">Chưa có dữ liệu chấm công trong kỳ.</td>
+                    </tr>
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>
+</div>

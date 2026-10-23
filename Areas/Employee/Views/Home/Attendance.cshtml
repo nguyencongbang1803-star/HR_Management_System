@@ -1,0 +1,152 @@
+@model EmployeeMonthlyAttendanceViewModel
+@{
+    ViewData["Title"]="Bảng chấm công tháng";
+    var current=new DateTime(Model.Year,Model.Month,1);
+    var previous=current.AddMonths(-1);
+    var next=current.AddMonths(1);
+}
+
+<div class="page-container">
+    <div class="custom-panel d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <strong style="color:#4a5468;font-size:16px;">Chấm công  · @DateTime.Now.ToString("dd/MM/yyyy")</strong>
+            @if(Model.CurrentAttendance?.Giovaolam is not null){<div class="small text-muted mt-1">Giờ vào: @Model.CurrentAttendance.Giovaolam.Value.ToString("HH:mm:ss") · Giờ ra: @(Model.CurrentAttendance.Giotanlam?.ToString("HH:mm:ss")??"Chưa chấm")</div>}
+            else{<div class="small text-muted mt-1">Chưa có dữ liệu chấm cônga hôm nay.</div>}
+        </div>
+  
+    </div>
+
+    <div class="custom-panel">
+        <div class="panel-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <strong style="color:#4a5468;font-size:16px;">Bảng chấm công tháng @Model.Month/@Model.Year</strong>
+                <div class="small text-muted mt-1">@Model.Employee.MaNhanVien · @Model.Employee.Ten</div>
+            </div>
+            <div class="d-flex align-items-end gap-2 flex-wrap justify-content-end">
+                @if(Model.Payroll is not null)
+                {
+                    <button type="button" class="btn-green-solid" data-bs-toggle="modal" data-bs-target="#payrollDetail">
+                        Xem bảng lương
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn-green-outline" disabled title="Bảng lương tháng này chưa được phát hành">
+                        Chưa có bảng lương
+                    </button>
+                }
+                <form method="get" class="d-flex align-items-end gap-2" data-auto-submit-search>
+                    <div>
+                        <label class="custom-label mb-1">Tháng</label>
+                        <select name="thang" class="custom-input form-select" style="width:110px;">
+                            @for(var month=1;month<=12;month++){
+                                <option value="@month" selected="@(month==Model.Month)">@month</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="custom-label mb-1">Năm</label>
+                        <input name="nam" type="number" min="2000" max="2200" value="@Model.Year" class="custom-input" style="width:120px;"/>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-3">
+            <a asp-action="Attendance" asp-route-thang="@previous.Month" asp-route-nam="@previous.Year" class="btn-green-outline" style="text-decoration:none;">← Tháng trước</a>
+            <a asp-action="Attendance" asp-route-thang="@next.Month" asp-route-nam="@next.Year" class="btn-green-outline" style="text-decoration:none;">Tháng sau →</a>
+        </div>
+    </div>
+
+    <section class="metric-grid mb-4">
+        <div class="metric custom-panel mb-0 text-center" style="padding:15px;"><div class="metric-label">Ngày làm việc</div><div class="metric-value fs-4">@Model.WorkingDays</div></div>
+        <div class="metric custom-panel mb-0 text-center" style="padding:15px;"><div class="metric-label">Ngày nghỉ</div><div class="metric-value fs-4">@Model.LeaveDays</div></div>
+        <div class="metric custom-panel mb-0 text-center" style="padding:15px;"><div class="metric-label">Giờ phạt đi trễ</div><div class="metric-value fs-4">@((Model.LateMinutes/60m).ToString("0.##"))</div></div>
+        <div class="metric custom-panel mb-0 text-center" style="padding:15px;"><div class="metric-label">Tổng giờ ghi nhận</div><div class="metric-value fs-4">@Model.TotalHours.ToString("N1")</div></div>
+    </section>
+
+    <div class="custom-panel">
+        <div class="panel-header"><strong style="color:#4a5468;font-size:16px;">Chi tiết chấm công</strong></div>
+        <div class="record-count">(@Model.Records.Count) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table mb-0">
+                <thead><tr><th>Ngày</th><th>Thứ</th><th>Trạng thái</th><th>Giờ vào</th><th>Giờ ra</th><th>Số giờ</th><th>Đi muộn</th><th></th></tr></thead>
+                <tbody>
+                    @foreach(var record in Model.Records){
+                        var isWorkingStatus = record.TrangThai is AttendanceStatuses.Present or AttendanceStatuses.Remote or AttendanceStatuses.BusinessTrip;
+                        var isIncomplete = isWorkingStatus && (!record.Giovaolam.HasValue || !record.Giotanlam.HasValue);
+                        <tr>
+                            <td><strong>@record.Ngay.ToString("dd/MM/yyyy")</strong></td>
+                            <td>@record.Ngay.ToString("dddd",new System.Globalization.CultureInfo("vi-VN"))</td>
+                            <td><span class="badge-status @(isIncomplete||record.TrangThai==AttendanceStatuses.Absent?"status-danger":record.TrangThai is AttendanceStatuses.PaidLeave or AttendanceStatuses.UnpaidLeave?"status-warning":"status-success")">@(isIncomplete?"Thiếu chấm công":HrmDisplay.Attendance(record.TrangThai))</span></td>
+                            <td>@(record.Giovaolam?.ToString("HH:mm")??"—")</td>
+                            <td>@(record.Giotanlam?.ToString("HH:mm")??"—")</td>
+                            <td>@(record.SoGioLam?.ToString("N1")??"—")</td>
+                            <td>@(record.PhutDiMuon>0?"Đi trễ":"—")</td>
+                            <td><a asp-action="RequestAttendanceAdjustment" asp-route-attendanceId="@record.ID" class="btn-green-outline" style="padding:4px 9px;font-size:12px;white-space:nowrap;">Chỉnh sửa công</a></td>
+                        </tr>
+                    }
+                    @if(Model.Records.Count==0){
+                        <tr><td colspan="8" class="text-center py-4" style="color:#5c6c85;">Chưa có dữ liệu chấm công trong tháng này.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if(Model.Payroll is not null)
+{
+    var payroll=Model.Payroll;
+    var salaryBasis=payroll.Luongcoban*payroll.HeSoLuong;
+    var attendanceSalary=payroll.SoNgayChuan>0
+        ? Math.Round(salaryBasis/payroll.SoNgayChuan*payroll.SoNgayCong,0)
+        : 0;
+    var grossIncome=attendanceSalary+payroll.Phucap+payroll.Thuong+payroll.ThuNhapKhac+payroll.TienTangCa;
+    var totalDeductions=payroll.Khautru+payroll.BaoHiem;
+    <div class="modal fade" id="payrollDetail" tabindex="-1" aria-labelledby="payrollDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <div>
+                        <h5 class="modal-title" id="payrollDetailTitle" style="color:#4a5468;font-weight:600;">Phiếu lương tháng @Model.Month/@Model.Year</h5>
+                        <small class="text-muted">@Model.Employee.MaNhanVien · @Model.Employee.Ten</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="d-flex justify-content-between align-items-center rounded-3 p-3 mb-4" style="background:#f4fbf8;">
+                        <div>
+                            <div class="small text-muted">Thực lĩnh</div>
+                            <strong style="font-size:26px;color:#027a48;">@payroll.Tongluong.ToString("N0") ₫</strong>
+                        </div>
+                        <span class="badge-status @(payroll.TrangThai==PayrollStatuses.Paid?"status-success":payroll.TrangThai==PayrollStatuses.Locked?"status-warning":"status-info")">
+                            @HrmDisplay.Payroll(payroll.TrangThai)
+                        </span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="custom-table mb-0">
+                            <tbody>
+                                <tr><th>Ngày công</th><td class="text-end">@payroll.SoNgayCong/@payroll.SoNgayChuan ngày</td></tr>
+                                <tr><th>Lương cơ bản</th><td class="text-end">@payroll.Luongcoban.ToString("N0") ₫</td></tr>
+                                <tr><th>Hệ số lương chức vụ</th><td class="text-end">× @payroll.HeSoLuong.ToString("0.##")</td></tr>
+                                <tr><th>Lương sau hệ số</th><td class="text-end">@salaryBasis.ToString("N0") ₫</td></tr>
+                                <tr><th>Lương theo ngày công</th><td class="text-end">@attendanceSalary.ToString("N0") ₫</td></tr>
+                                <tr><th>Phụ cấp</th><td class="text-end text-success">+@payroll.Phucap.ToString("N0") ₫</td></tr>
+                                <tr><th>Thưởng</th><td class="text-end text-success">+@payroll.Thuong.ToString("N0") ₫</td></tr>
+                                <tr><th>Thu nhập khác</th><td class="text-end text-success">+@payroll.ThuNhapKhac.ToString("N0") ₫</td></tr>
+                                <tr><th>Tăng ca (@payroll.SoGioTangCa.ToString("0.##") giờ)</th><td class="text-end text-success">+@payroll.TienTangCa.ToString("N0") ₫</td></tr>
+                                <tr class="table-light"><th>Tổng thu nhập</th><td class="text-end fw-semibold">@grossIncome.ToString("N0") ₫</td></tr>
+                                <tr><th>Khấu trừ/phạt</th><td class="text-end text-danger">-@payroll.Khautru.ToString("N0") ₫</td></tr>
+                                <tr><th>Bảo hiểm</th><td class="text-end text-danger">-@payroll.BaoHiem.ToString("N0") ₫</td></tr>
+                                <tr class="table-light"><th>Tổng khấu trừ</th><td class="text-end fw-semibold text-danger">@totalDeductions.ToString("N0") ₫</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn-green-solid" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

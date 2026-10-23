@@ -1,0 +1,4 @@
+@model ScopedSocialInsuranceFormViewModel
+@{ ViewData["Title"] = "Cập nhật chính sách BHXH"; }
+<div class="page-container"><div class="custom-panel"><div class="panel-header">Cập nhật chính sách BHXH</div><form asp-action="Edit" asp-route-id="@Model.ID" method="post"><partial name="_Form" model="Model"/></form></div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial"/> }

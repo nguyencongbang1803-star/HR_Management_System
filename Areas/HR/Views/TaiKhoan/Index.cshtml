@@ -1,0 +1,127 @@
+@model IReadOnlyList<TaiKhoan>
+@{
+    ViewData["Title"] = "Tài khoản";
+    var employees = (IEnumerable<NhanVien>)ViewBag.Employees;
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <button class="btn-green-solid" data-bs-toggle="modal" data-bs-target="#createAccount">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Tạo tài khoản
+        </button>
+        <div class="record-count">(@Model.Count) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Nhân viên</th>
+                    <th>Chức vụ</th>
+                    <th>Nhóm quyền theo chức vụ</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var account in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong style="color: #4a5468;">@account.Email</strong>
+                            <div class="small text-muted">@account.MaNhanVien</div>
+                        </td>
+                        <td>@(account.NhanVien?.Ten ?? "Tài khoản hệ thống")</td>
+                        <td>@(account.NhanVien?.ChucVu?.Chucvu ?? "Tài khoản hệ thống")</td>
+                        <td>
+                            @foreach(var role in account.NhanVienID.HasValue?AuthorizationRoles.Parse(account.NhanVien?.ChucVu?.PhanQuyen):AuthorizationRoles.Parse(account.Role)){<span class="badge rounded-pill text-bg-light me-1">@role</span>}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                @if (account.NhanVienID.HasValue)
+                                {
+                                    <form asp-action="StartFaceEnrollment" asp-route-id="@account.MaTaiKhoan" method="post" class="m-0">
+                                        <button type="submit" class="action-btn" title="Chuyển kiosk sang chế độ đăng ký khuôn mặt" aria-label="Đăng ký khuôn mặt cho @account.NhanVien?.Ten" style="color:#027a48;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="10" r="3"></circle><path d="M7.5 17c.8-2 2.3-3 4.5-3s3.7 1 4.5 3"></path></svg>
+                                        </button>
+                                    </form>
+                                    <form asp-action="RemoveFaceEnrollment" asp-route-id="@account.MaTaiKhoan" method="post" class="m-0" onsubmit="return confirm('Xóa dữ liệu khuôn mặt đã đăng ký của nhân viên này?');">
+                                        <button type="submit" class="action-btn" title="Xóa dữ liệu khuôn mặt" aria-label="Xóa dữ liệu khuôn mặt của @account.NhanVien?.Ten" style="color:#b42318;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="10" r="3"></circle><path d="M7.5 17c.8-2 2.3-3 4.5-3s3.7 1 4.5 3"></path><line x1="5" y1="5" x2="19" y2="19"></line></svg>
+                                        </button>
+                                    </form>
+                                }
+                                <button type="button" class="action-btn" title="Đặt lại mật khẩu" aria-label="Đặt lại mật khẩu cho @account.Email" data-bs-toggle="modal" data-bs-target="#reset-@account.MaTaiKhoan">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path><path d="M12 15v2"></path></svg>
+                                </button>
+                            </div>
+
+                            <!-- Modal Đặt lại mật khẩu -->
+                            <div class="modal fade" id="reset-@account.MaTaiKhoan" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form asp-action="ResetPassword" method="post" class="modal-content text-start">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" style="color: #4a5468; font-weight: 600;">Đặt lại mật khẩu</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" name="id" value="@account.MaTaiKhoan" />
+                                            <p class="mb-3" style="color: #5c6c85;"><strong>Email:</strong> @account.Email</p>
+                                            <label class="custom-label required">Mật khẩu mới</label>
+                                            <div class="input-group">
+                                                <input id="reset-password-@account.MaTaiKhoan" name="newPassword" type="password" minlength="8" required class="custom-input rounded-end-0" autocomplete="new-password" />
+                                                <button type="button" class="btn-green-outline rounded-start-0 password-toggle" data-password-toggle="#reset-password-@account.MaTaiKhoan" aria-label="Hiện mật khẩu" aria-pressed="false"></button>
+                                            </div>
+                                            <small class="text-muted">Ít nhất 8 ký tự, gồm một chữ số và một ký tự đặc biệt.</small>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn-green-solid">Lưu mật khẩu</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tạo tài khoản -->
+<div class="modal fade" id="createAccount" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="Create" method="post" class="modal-content text-start">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #4a5468; font-weight: 600;">Tạo tài khoản</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="custom-label">Nhân viên</label>
+                    <select name="NhanVienID" required class="custom-input form-select employee-select">
+                        <option value="">Chọn nhân viên</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.ID" data-employee-code="@employee.MaNhanVien" data-employee-name="@employee.Ten">@employee.MaNhanVien - @employee.Ten - @(employee.ChucVu?.Chucvu ?? "Chưa có chức vụ")</option>
+                        }
+                    </select>
+                    <small class="text-muted">Email đăng nhập được lấy tự động từ hồ sơ nhân viên.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="custom-label required">Mật khẩu </label>
+                    <div class="input-group">
+                        <input id="create-password" name="Password" type="password" minlength="8" required class="custom-input rounded-end-0" autocomplete="new-password" />
+                        <button type="button" class="btn-green-outline rounded-start-0 password-toggle" data-password-toggle="#create-password" aria-label="Hiện mật khẩu" aria-pressed="false"></button>
+                    </div>
+                    <small class="text-muted">Ít nhất 8 ký tự, gồm một chữ số và một ký tự đặc biệt.</small>
+                </div>
+            
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-green-outline" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn-green-solid">Tạo tài khoản</button>
+            </div>
+        </form>
+    </div>
+</div>

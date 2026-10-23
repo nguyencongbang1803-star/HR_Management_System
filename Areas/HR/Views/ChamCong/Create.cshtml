@@ -1,0 +1,59 @@
+@model AttendanceFormViewModel
+@{
+    ViewData["Title"] = Model.ID == 0 ? "Ghi chấm công" : "Sửa chấm công";
+    var employees = (IEnumerable<NhanVien>)ViewBag.NhanViens;
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">@ViewData["Title"]</div>
+        <form method="post" asp-action="@(Model.ID == 0 ? "Create" : "Edit")" asp-route-id="@Model.ID">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input asp-for="ID" type="hidden" />
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label asp-for="NhanVienID" class="custom-label required"></label>
+                    <select asp-for="NhanVienID" class="custom-input form-select employee-select">
+                        <option value="">Chọn nhân viên</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.ID" data-employee-code="@employee.MaNhanVien" data-employee-name="@employee.Ten">@employee.MaNhanVien - @employee.Ten</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NhanVienID" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Ngay" class="custom-label required"></label>
+                    <input asp-for="Ngay" class="custom-input" />
+                    <span asp-validation-for="Ngay" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="TrangThai" class="custom-label"></label>
+                    <select asp-for="TrangThai" class="custom-input form-select">
+                        <option value="Present">Có mặt</option>
+                        <option value="Remote">Làm từ xa</option>
+                        <option value="PaidLeave">Nghỉ có lương</option>
+                        <option value="UnpaidLeave">Nghỉ không lương</option>
+                        <option value="Absent">Vắng</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="GioVao" class="custom-label"></label>
+                    <input asp-for="GioVao" class="custom-input" />
+                    <span asp-validation-for="GioVao" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="GioRa" class="custom-label"></label>
+                    <input asp-for="GioRa" class="custom-input" />
+                    <span asp-validation-for="GioRa" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a class="btn-green-outline" asp-action="Index">Hủy</a>
+                <button class="btn-green-solid" type="submit">Lưu chấm công</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

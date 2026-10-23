@@ -1,0 +1,20 @@
+@model OvertimeRequestViewModel
+@{ ViewData["Title"] = "Đăng ký tăng ca"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Đăng ký tăng ca</div>
+        <form asp-action="RequestOvertime" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row g-4">
+                <div class="col-md-4"><label asp-for="Ngay" class="custom-label"></label><input asp-for="Ngay" class="custom-input" /></div>
+                <div class="col-md-4"><label asp-for="GioBatDau" class="custom-label"></label><input asp-for="GioBatDau" class="custom-input" /></div>
+                <div class="col-md-4"><label asp-for="GioKetThuc" class="custom-label"></label><input asp-for="GioKetThuc" class="custom-input" /></div>
+                <div class="col-12"><label asp-for="LyDo" class="custom-label"></label><textarea asp-for="LyDo" class="custom-input" rows="4"></textarea></div>
+                <div class="col-12"><label asp-for="FilesMinhChung" class="custom-label"></label><input asp-for="FilesMinhChung" class="custom-input" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"/><span asp-validation-for="FilesMinhChung" class="text-danger"></span><small class="d-block text-muted mt-1">Có thể để trống hoặc chọn nhiều tệp nếu cần bổ sung thông tin.</small></div>
+            </div>
+            <div class="d-flex justify-content-end gap-3 mt-4"><a asp-action="Index" class="btn-green-outline">Hủy</a><button class="btn-green-solid">Gửi đăng ký</button></div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

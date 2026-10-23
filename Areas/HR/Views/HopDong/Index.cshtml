@@ -1,0 +1,104 @@
+@model IReadOnlyList<HopDong>
+@{
+    ViewData["Title"] = "Hợp đồng";
+    var renewedContractIds = (HashSet<int>)ViewBag.RenewedContractIds;
+}
+
+<div class="page-container">
+    <!-- Panel Tìm kiếm -->
+    <div class="custom-panel" id="contract-list">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>Hợp đồng</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search>
+                <div class="row g-4 align-items-end">
+                    <div class="col-md-4">
+                        <label class="custom-label">Tìm kiếm</label>
+                        <input name="search" value="@ViewBag.Search" class="custom-input" placeholder="Số HĐ hoặc nhân viên" />
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mb-2">
+                            <input name="activeOnly" value="true" type="checkbox" class="form-check-input" id="active" checked="@((bool)ViewBag.ActiveOnly)"/>
+                            <label for="active" class="form-check-label custom-label mb-0" style="margin-top:2px;">Chỉ hợp đồng hiệu lực</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-end gap-3">
+                        <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel Kết quả -->
+    <div class="custom-panel">
+        @if(User.IsInRole("Admin")||User.IsInRole("HR")){
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn-green-solid" asp-action="Create">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    Tạo hợp đồng
+                </a>
+            </div>
+        }
+        <div class="record-count">(@Model.Count) Records Found</div>
+
+        <div class="table-wrapper">
+            <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Số hợp đồng</th>
+                    <th>Nhân viên</th>
+                    <th>Loại</th>
+                    <th>Thời hạn</th>
+                    <th>Lương cơ bản</th>
+                    <th>Trạng thái</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var h in Model){
+                    <tr>
+                        <td>
+                            <strong>@h.SoHopDong</strong>
+                            <div class="small text-muted">Ký @h.Ngayky.ToString("dd/MM/yyyy")</div>
+                            @if(h.DuongDanFile is not null){
+                                <a asp-action="Download" asp-route-id="@h.ID" class="small" style="color: #73c04d;">Tải file</a>
+                            }
+                        </td>
+                        <td>@h.NhanVien?.Ten</td>
+                        <td>@h.Loaihopdong</td>
+                        <td>@h.Ngaybatdau.ToString("dd/MM/yyyy")<br/>@(h.Ngayketthuc?.ToString("dd/MM/yyyy")??"Không thời hạn")</td>
+                        <td><strong style="color: #2d3748;">@h.Luongcoban.ToString("N0") ₫</strong></td>
+                        <td><span class="badge-status @(h.Trangthai?"status-success":"status-danger")">@(h.Trangthai?"Hiệu lực":"Ngừng")</span></td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                @if(User.IsInRole("Admin")||User.IsInRole("HR")){
+                                    <a asp-action="Edit" asp-route-id="@h.ID" class="action-btn" title="Sửa" style="text-decoration:none;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    </a>
+                                    @if (h.Ngayketthuc.HasValue && !renewedContractIds.Contains(h.ID))
+                                    {
+                                        <a asp-action="Create" asp-route-renewFromId="@h.ID" class="action-btn" title="Gia hạn" style="text-decoration:none;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
+                                        </a>
+                                    }
+                                    <form asp-action="ToggleStatus" asp-route-id="@h.ID" method="post" class="m-0">
+                                        <button class="action-btn" title="Đổi trạng thái">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path></svg>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if(Model.Count==0){
+                    <tr><td colspan="7" class="text-center py-4" style="color:#5c6c85;">Chưa có hợp đồng.</td></tr>
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>
+</div>

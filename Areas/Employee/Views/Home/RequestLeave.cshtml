@@ -1,0 +1,23 @@
+@model LeaveFormViewModel
+@{
+    ViewData["Title"] = "Xin nghỉ phép";
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Xin nghỉ phép</div>
+        <form asp-action="RequestLeave" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input asp-for="NhanVienID" type="hidden" />
+            <div class="row g-4">
+                <div class="col-md-6"><label asp-for="Ngaybatdau" class="custom-label required"></label><input asp-for="Ngaybatdau" class="custom-input" /></div>
+                <div class="col-md-6"><label asp-for="NgayKetThuc" class="custom-label required"></label><input asp-for="NgayKetThuc" class="custom-input" /><span asp-validation-for="NgayKetThuc" class="text-danger"></span></div>
+                <div class="col-12"><label asp-for="Lydo" class="custom-label required"></label><textarea asp-for="Lydo" class="custom-input" rows="4"></textarea><span asp-validation-for="Lydo" class="text-danger"></span></div>
+                <div class="col-12"><label asp-for="FilesMinhChung" class="custom-label required"></label><input asp-for="FilesMinhChung" class="custom-input" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" /><span asp-validation-for="FilesMinhChung" class="text-danger"></span></div>
+                <div class="col-12 form-check ms-2"><input asp-for="LaDotXuat" class="form-check-input" /><label asp-for="LaDotXuat" class="form-check-label">Nghỉ khẩn cấp</label><small class="d-block text-muted">Đơn thường phải báo trước 3 ngày. Chọn nghỉ khẩn cấp nếu cần nghỉ sớm hơn.</small></div>
+            </div>
+            <div class="d-flex justify-content-end gap-3 mt-4"><a asp-action="Index" class="btn-green-outline">Hủy</a><button class="btn-green-solid">Gửi yêu cầu</button></div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

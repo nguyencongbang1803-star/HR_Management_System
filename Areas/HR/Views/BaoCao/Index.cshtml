@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"]="Báo cáo";
+    var departments=(IEnumerable<DepartmentSummaryViewModel>)ViewBag.EmployeeByDepartment;
+}
+
+<div class="page-container">
+    <!-- Panel Tìm kiếm -->
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>Báo cáo vận hành</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search>
+                <div class="row g-4 align-items-end">
+                    <div class="col-md-3">
+                        <label class="custom-label">Tháng</label>
+                        <input name="thang" type="number" min="1" max="12" value="@ViewBag.Thang" class="custom-input"/>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Năm</label>
+                        <input name="nam" type="number" min="2000" max="2200" value="@ViewBag.Nam" class="custom-input"/>
+                    </div>
+                    <div class="col-md-6 d-flex justify-content-end gap-3">
+                        <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if(User.IsInRole("Admin")||User.IsInRole("HR")){
+        <div class="custom-panel">
+            <a class="btn-green-solid" asp-action="ExportPayroll" asp-route-thang="@ViewBag.Thang" asp-route-nam="@ViewBag.Nam" style="text-decoration:none;">Xuất bảng lương CSV</a>
+        </div>
+    }
+
+    <section class="metric-grid mb-4">
+        <div class="metric custom-panel mb-0 text-center" style="padding: 15px;">
+            <div class="metric-label" style="color: #5c6c85; font-size: 13px; margin-bottom: 5px;">Bản ghi chấm công</div>
+            <div class="metric-value" style="color: #4a5468; font-size: 24px; font-weight: 700;">@ViewBag.AttendanceCount</div>
+        </div>
+        <div class="metric custom-panel mb-0 text-center" style="padding: 15px;">
+            <div class="metric-label" style="color: #5c6c85; font-size: 13px; margin-bottom: 5px;">Đơn nghỉ phát sinh</div>
+            <div class="metric-value" style="color: #4a5468; font-size: 24px; font-weight: 700;">@ViewBag.LeaveCount</div>
+        </div>
+        <div class="metric custom-panel mb-0 text-center" style="padding: 15px;">
+            <div class="metric-label" style="color: #5c6c85; font-size: 13px; margin-bottom: 5px;">NV có bảng lương</div>
+            <div class="metric-value" style="color: #4a5468; font-size: 24px; font-weight: 700;">@ViewBag.PayrollCount</div>
+        </div>
+        <div class="metric custom-panel mb-0 text-center" style="padding: 15px;">
+            <div class="metric-label" style="color: #5c6c85; font-size: 13px; margin-bottom: 5px;">Tổng thực lĩnh</div>
+            <div class="metric-value fs-4" style="color: #4a5468; font-weight: 700;">@(((decimal)ViewBag.PayrollTotal).ToString("N0")) ₫</div>
+        </div>
+    </section>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="custom-panel">
+                <div class="panel-header">
+                    <strong style="color: #4a5468; font-size: 16px;">Nhân sự theo phòng ban</strong>
+                </div>
+                <div class="panel-body px-0 pt-3 pb-0">
+                    @foreach(var x in departments){
+                        <div class="d-flex justify-content-between border-bottom py-3 px-3">
+                            <span style="color:#4a5468;">@x.Name</span>
+                            <strong style="color:#2d3748;">@x.Count nhân viên</strong>
+                        </div>
+                    }
+                    @if(!departments.Any()){
+                        <div class="text-center py-4" style="color:#5c6c85;">Chưa có dữ liệu phòng ban.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

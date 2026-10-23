@@ -1,0 +1,129 @@
+@model EmployeeFormViewModel
+@{
+    var departments = (IEnumerable<PhongBan>)ViewBag.PhongBans;
+    var positions = (IEnumerable<ChucVu>)ViewBag.ChucVus;
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input asp-for="ID" type="hidden" />
+
+<div class="form-section">
+    <div class="form-section-title">Thông tin cơ bản</div>
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                @if (Model.ID > 0 && !string.IsNullOrWhiteSpace(Model.CurrentAvatar))
+                {
+                    <img class="employee-avatar employee-avatar-xl" src="@Url.Action("Employee", "Avatar", new { area = "", id = Model.ID, v = Model.CurrentAvatar })" alt="Ảnh đại diện của @Model.Ten" />
+                }
+                else
+                {
+                    <span class="employee-avatar employee-avatar-xl employee-avatar-placeholder" aria-hidden="true">@(string.IsNullOrWhiteSpace(Model.Ten) ? "NV" : Model.Ten.Trim()[0].ToString().ToUpperInvariant())</span>
+                }
+                <div class="flex-grow-1" style="min-width:240px;max-width:520px;">
+                    <label asp-for="Avatar" class="custom-label"></label>
+                    <input asp-for="Avatar" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="custom-input" />
+                    <span asp-validation-for="Avatar" class="text-danger"></span>
+                    <small class="text-muted d-block mt-1">Ảnh JPG hoặc PNG.</small>
+                    @if (!string.IsNullOrWhiteSpace(Model.CurrentAvatar))
+                    {
+                        <div class="form-check mt-2">
+                            <input asp-for="RemoveAvatar" class="form-check-input" />
+                            <label asp-for="RemoveAvatar" class="form-check-label"></label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="MaNhanVien" class="custom-label required"></label>
+            <input asp-for="MaNhanVien" class="custom-input" />
+            <span asp-validation-for="MaNhanVien" class="text-danger"></span>
+        </div>
+        <div class="col-md-8">
+            <label asp-for="Ten" class="custom-label required"></label>
+            <input asp-for="Ten" class="custom-input" />
+            <span asp-validation-for="Ten" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Email" class="custom-label"></label>
+            <input asp-for="Email" class="custom-input" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="SDT" class="custom-label"></label>
+            <input asp-for="SDT" class="custom-input" />
+            <span asp-validation-for="SDT" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="NgaySinh" class="custom-label"></label>
+            <input asp-for="NgaySinh" class="custom-input" />
+            <span asp-validation-for="NgaySinh" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Gioitinh" class="custom-label"></label>
+            <select asp-for="Gioitinh" class="custom-input form-select">
+                <option value="true">Nam</option>
+                <option value="false">Nữ</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="CanCuocCongDan" class="custom-label required"></label>
+            <input asp-for="CanCuocCongDan" class="custom-input" required />
+            <span asp-validation-for="CanCuocCongDan" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="DiaChi" class="custom-label"></label>
+            <input asp-for="DiaChi" class="custom-input" />
+        </div>
+    </div>
+</div>
+
+<div class="form-section">
+    <div class="form-section-title">Công việc</div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <label asp-for="Ngayvaolam" class="custom-label required"></label>
+            <input asp-for="Ngayvaolam" class="custom-input" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="PhongBanID" class="custom-label"></label>
+            <select asp-for="PhongBanID" class="custom-input form-select">
+                <option value="">Chưa phân công</option>
+                @foreach (var department in departments)
+                {
+                    <option value="@department.ID">@department.Tenphongban</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="ChucVuID" class="custom-label"></label>
+            <select asp-for="ChucVuID" class="custom-input form-select">
+                <option value="">Chưa phân công</option>
+                @foreach (var position in positions)
+                {
+                    <option value="@position.ID">@position.Chucvu</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="MaSothue" class="custom-label"></label>
+            <input asp-for="MaSothue" class="custom-input" />
+        </div>
+        <div class="col-md-6">
+            <label asp-for="SoTaiKhoan" class="custom-label"></label>
+            <input asp-for="SoTaiKhoan" class="custom-input" />
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input asp-for="Trangthai" class="form-check-input" />
+                <label asp-for="Trangthai" class="form-check-label">Đang làm việc</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end gap-3">
+    <a class="btn-green-outline" asp-action="Index">Hủy</a>
+    <button class="btn-green-solid" type="submit">Lưu nhân viên</button>
+</div>

@@ -1,0 +1,152 @@
+@model ApprovalRequestCenterViewModel
+@{
+    ViewData["Title"] = "Yêu cầu";
+    var activeTab = (ViewBag.ActiveTab as string)?.ToLowerInvariant();
+    if (activeTab is not ("leave" or "overtime" or "attendance" or "profile")) activeTab = "leave";
+    if (!Model.CanReviewHrRequests && activeTab is "attendance" or "profile") activeTab = "leave";
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header"><strong>Yêu cầu cần xử lý</strong></div>
+        <div class="request-center-tabs" role="tablist" aria-label="Loại yêu cầu">
+            <a asp-action="Index" asp-route-tab="leave" class="request-center-tab @(activeTab == "leave" ? "active" : null)">Nghỉ phép <span>@Model.PendingLeaves</span></a>
+            <a asp-action="Index" asp-route-tab="overtime" class="request-center-tab @(activeTab == "overtime" ? "active" : null)">Tăng ca <span>@Model.PendingOvertime</span></a>
+            @if (Model.CanReviewHrRequests)
+            {
+                <a asp-action="Index" asp-route-tab="attendance" class="request-center-tab @(activeTab == "attendance" ? "active" : null)">Sửa công <span>@Model.PendingAttendanceAdjustments</span></a>
+                <a asp-action="Index" asp-route-tab="profile" class="request-center-tab @(activeTab == "profile" ? "active" : null)">Đổi hồ sơ <span>@Model.PendingProfileChanges</span></a>
+            }
+        </div>
+    </div>
+
+    @if (activeTab == "leave")
+    {
+        <div class="custom-panel">
+            <div class="panel-header"><strong>Đơn nghỉ phép</strong></div>
+            <div class="table-wrapper"><table class="custom-table"><thead><tr><th>Nhân viên</th><th>Thời gian</th><th>Lý do</th><th>Trạng thái</th><th>Xử lý</th></tr></thead><tbody>
+            @foreach (var x in Model.Leaves)
+            {
+                <tr><td><strong>@x.NhanVien?.Ten</strong><div class="small text-muted">@x.NhanVien?.MaNhanVien</div></td><td>@x.Ngaybatdau.ToString("dd/MM/yyyy") – @x.NgayKetThuc.ToString("dd/MM/yyyy")<div class="small text-muted">@x.LoaiNghi</div></td><td>@x.Lydo@foreach (var proof in x.MinhChungs) { <div class="file-evidence-item"><button type="button" class="file-preview-trigger" data-file-preview data-preview-url="@Url.Action("PreviewEvidence", "NghiPhep", new { area = "HR", id = proof.ID })" data-download-url="@Url.Action("DownloadEvidence", "NghiPhep", new { area = "HR", id = proof.ID })" data-file-name="@proof.TenFileGoc" data-content-type="@proof.ContentType">@proof.TenFileGoc</button><a asp-controller="NghiPhep" asp-action="DownloadEvidence" asp-route-id="@proof.ID" class="file-download-link">Tải xuống</a></div> }</td><td><span class="badge-status @(x.Trangthai == LeaveStatuses.Approved ? "status-success" : x.Trangthai == LeaveStatuses.Rejected ? "status-danger" : "status-warning")">@HrmDisplay.Leave(x.Trangthai)</span></td><td>
+                @if (Model.DecidableLeaveIds.Contains(x.ID))
+                {
+                    <div class="approval-workflow" data-approval-workflow>
+                        <div class="approval-decision-actions" data-approval-actions>
+                            <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
+                            <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <form asp-controller="NghiPhep" asp-action="Decide" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                            <input type="hidden" name="ID" value="@x.ID"/>
+                            <input type="hidden" name="Decision" data-approval-decision-input/>
+                            <input type="hidden" name="returnToRequests" value="true"/>
+                            <input type="hidden" name="returnTab" value="leave"/>
+                            <div class="approval-response-card">
+                                <div class="approval-modal-header">
+                                    <div class="approval-modal-title">
+                                        <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                        <span data-approval-title>Phản hồi khi duyệt</span>
+                                    </div>
+                                    <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                </div>
+                                <div class="approval-modal-body">
+                                    <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                    <textarea name="Response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                </div>
+                                <div class="approval-modal-footer">
+                                    <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                    <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                }
+                </td></tr>
+            }
+            @if (Model.Leaves.Count == 0) { <tr><td colspan="5" class="text-center text-muted">Không có đơn nghỉ phép.</td></tr> }
+            </tbody></table></div>
+        </div>
+    }
+    else if (activeTab == "overtime")
+    {
+        <div class="custom-panel">
+            <div class="panel-header"><strong>Yêu cầu tăng ca</strong></div>
+            <div class="table-wrapper"><table class="custom-table"><thead><tr><th>Nhân viên</th><th>Ngày/giờ</th><th>Lý do</th><th>Trạng thái</th><th>Xử lý</th></tr></thead><tbody>
+            @foreach (var x in Model.OvertimeRequests)
+            {
+                var finalHrStep = x.TrangThai == ApprovalStatuses.ManagerApproved;
+                <tr><td><strong>@x.NhanVien?.Ten</strong><div class="small text-muted">@x.NhanVien?.MaNhanVien</div></td><td>@x.Ngay.ToString("dd/MM/yyyy")<div class="small text-muted">@x.GioBatDau.ToString("hh\\:mm") – @x.GioKetThuc.ToString("hh\\:mm")</div></td><td>@x.LyDo@foreach (var proof in x.MinhChungs) { <div class="file-evidence-item"><button type="button" class="file-preview-trigger" data-file-preview data-preview-url="@Url.Action("PreviewOvertimeEvidence", "VanHanh", new { area = "HR", id = proof.ID })" data-download-url="@Url.Action("DownloadOvertimeEvidence", "VanHanh", new { area = "HR", id = proof.ID })" data-file-name="@proof.TenFileGoc" data-content-type="@proof.ContentType">@proof.TenFileGoc</button><a asp-controller="VanHanh" asp-action="DownloadOvertimeEvidence" asp-route-id="@proof.ID" class="file-download-link">Tải xuống</a></div> }</td><td><span class="badge-status @(x.TrangThai == ApprovalStatuses.Approved ? "status-success" : x.TrangThai == ApprovalStatuses.Rejected ? "status-danger" : "status-warning")">@HrmDisplay.Leave(x.TrangThai)</span></td><td>
+                @if (Model.DecidableOvertimeIds.Contains(x.ID))
+                {
+                    <div class="approval-workflow" data-approval-workflow>
+                        <div class="approval-decision-actions" data-approval-actions>
+                            <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
+                            <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <form asp-controller="VanHanh" asp-action="DecideOvertime" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                            <input type="hidden" name="id" value="@x.ID"/>
+                            <input type="hidden" name="decision" data-approval-decision-input/>
+                            <input type="hidden" name="returnToRequests" value="true"/>
+                            <input type="hidden" name="returnTab" value="overtime"/>
+                            <div class="approval-response-card">
+                                <div class="approval-modal-header">
+                                    <div class="approval-modal-title">
+                                        <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                        <span data-approval-title>Phản hồi khi duyệt</span>
+                                    </div>
+                                    <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                </div>
+                                <div class="approval-modal-body">
+                                    @if (finalHrStep) {
+                                        <div class="mb-3" data-approved-only>
+                                            <label class="custom-label">Số giờ được duyệt</label>
+                                            <input name="approvedHours" type="number" min="0.25" step="0.25" value="@x.SoGioDangKy" class="custom-input"/>
+                                        </div>
+                                    }
+                                    <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                    <textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                </div>
+                                <div class="approval-modal-footer">
+                                    <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                    <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                }
+                </td></tr>
+            }
+            @if (Model.OvertimeRequests.Count == 0) { <tr><td colspan="5" class="text-center text-muted">Không có yêu cầu tăng ca.</td></tr> }
+            </tbody></table></div>
+        </div>
+    }
+    else if (activeTab == "attendance" && Model.CanReviewHrRequests)
+    {
+        <div class="custom-panel"><div class="panel-header"><strong>Yêu cầu sửa công</strong></div><div class="table-wrapper"><table class="custom-table"><thead><tr><th>Nhân viên</th><th>Ngày</th><th>Thời gian đề xuất</th><th>Lý do/minh chứng</th><th>Trạng thái</th><th>Xử lý</th></tr></thead><tbody>
+        @foreach (var x in Model.AttendanceAdjustments)
+        {
+            <tr><td><strong>@x.NhanVien?.Ten</strong><div class="small text-muted">@x.NhanVien?.MaNhanVien</div></td><td>@x.Ngay.ToString("dd/MM/yyyy")</td><td>@x.GioVaoDeXuat?.ToString("hh\\:mm") – @x.GioRaDeXuat?.ToString("hh\\:mm")</td><td>@x.LyDo@foreach (var proof in x.MinhChungs) { <div class="file-evidence-item"><button type="button" class="file-preview-trigger" data-file-preview data-preview-url="@Url.Action("PreviewEvidence", "DieuChinhCong", new { area = "HR", id = proof.ID })" data-download-url="@Url.Action("DownloadEvidence", "DieuChinhCong", new { area = "HR", id = proof.ID })" data-file-name="@proof.TenFileGoc" data-content-type="@proof.ContentType">@proof.TenFileGoc</button><a asp-controller="DieuChinhCong" asp-action="DownloadEvidence" asp-route-id="@proof.ID" class="file-download-link">Tải xuống</a></div> }</td><td><span class="badge-status @(x.TrangThai == ApprovalStatuses.Approved ? "status-success" : x.TrangThai == ApprovalStatuses.Rejected ? "status-danger" : "status-warning")">@HrmDisplay.Leave(x.TrangThai)</span></td><td>@if (x.TrangThai == ApprovalStatuses.Pending) { <div class="approval-workflow" data-approval-workflow><div class="approval-decision-actions" data-approval-actions><button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><form asp-controller="DieuChinhCong" asp-action="Decide" method="post" class="approval-response-form text-start" data-approval-form hidden><input type="hidden" name="id" value="@x.ID"/><input type="hidden" name="decision" data-approval-decision-input/><input type="hidden" name="returnToRequests" value="true"/><input type="hidden" name="returnTab" value="attendance"/><div class="approval-response-card"><div class="approval-modal-header"><div class="approval-modal-title"><span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span><span data-approval-title>Phản hồi khi duyệt</span></div><button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button></div><div class="approval-modal-body"><label class="custom-label">Phản hồi <span class="text-danger">*</span></label><textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea></div><div class="approval-modal-footer"><button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button><button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button></div></div></form></div> }</td></tr>
+        }
+        @if (Model.AttendanceAdjustments.Count == 0) { <tr><td colspan="6" class="text-center text-muted">Không có yêu cầu sửa công.</td></tr> }
+        </tbody></table></div></div>
+    }
+    else if (activeTab == "profile" && Model.CanReviewHrRequests)
+    {
+        <div class="custom-panel"><div class="panel-header"><strong>Yêu cầu thay đổi thông tin cá nhân</strong></div><div class="table-wrapper"><table class="custom-table"><thead><tr><th>Nhân viên</th><th>Thông tin đề xuất</th><th>Lý do</th><th>Trạng thái</th><th>Xử lý</th></tr></thead><tbody>
+        @foreach (var x in Model.ProfileChanges)
+        {
+            <tr><td><strong>@x.NhanVien?.Ten</strong><div class="small text-muted">@x.NhanVien?.MaNhanVien</div></td><td><small>Email: @(x.Email ?? "—")<br/>SĐT: @(x.SDT ?? "—") · CCCD: @(x.CanCuocCongDan ?? "—")<br/>Ngày sinh: @(x.NgaySinh?.ToString("dd/MM/yyyy") ?? "—") · MST: @(x.MaSoThue ?? "—")</small></td><td>@x.LyDo</td><td><span class="badge-status @(x.TrangThai == ApprovalStatuses.Approved ? "status-success" : x.TrangThai == ApprovalStatuses.Rejected ? "status-danger" : "status-warning")">@HrmDisplay.Leave(x.TrangThai)</span></td><td>@if (x.TrangThai == ApprovalStatuses.Pending) { <div class="approval-workflow" data-approval-workflow><div class="approval-decision-actions" data-approval-actions><button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><form asp-controller="CapNhatThongTin" asp-action="Decide" method="post" class="approval-response-form text-start" data-approval-form hidden><input type="hidden" name="id" value="@x.ID"/><input type="hidden" name="decision" data-approval-decision-input/><input type="hidden" name="returnToRequests" value="true"/><input type="hidden" name="returnTab" value="profile"/><div class="approval-response-card"><div class="approval-modal-header"><div class="approval-modal-title"><span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span><span data-approval-title>Phản hồi khi duyệt</span></div><button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button></div><div class="approval-modal-body"><label class="custom-label">Phản hồi <span class="text-danger">*</span></label><textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea></div><div class="approval-modal-footer"><button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button><button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button></div></div></form></div> }</td></tr>
+        }
+        @if (Model.ProfileChanges.Count == 0) { <tr><td colspan="5" class="text-center text-muted">Không có yêu cầu đổi hồ sơ.</td></tr> }
+        </tbody></table></div></div>
+    }
+</div>
+
+<partial name="_FilePreviewModal" />

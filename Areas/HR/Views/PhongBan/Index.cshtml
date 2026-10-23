@@ -1,0 +1,668 @@
+@model DepartmentIndexViewModel
+@{
+    ViewData["Title"] = "Phòng ban";
+    var managerDepartmentIds = (IReadOnlyDictionary<int, int>)ViewBag.ManagerDepartmentIds;
+    var allDepartments = (IReadOnlyList<PhongBan>)ViewBag.AllDepartments;
+
+    var totalEmployees = Model.Items.Sum(x => x.EmployeeCount);
+    var rootCount = Model.Roots.Count;
+    var subCount = Model.Items.Count - rootCount;
+}
+
+<div class="page-container">
+
+
+    <!-- Thanh tìm kiếm -->
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection" style="cursor:pointer;">
+            <span>Tìm kiếm phòng ban</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search style="margin-top:16px;">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="custom-label" for="pb-search">Tên phòng ban</label>
+                        <input id="pb-search" name="search" value="@Model.Search" class="custom-input"
+                               placeholder="Nhập tên phòng ban..." autocomplete="off" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="custom-label" for="pb-manager">Trưởng phòng</label>
+                        <input id="pb-manager" name="managerSearch" value="@Model.ManagerSearch" class="custom-input"
+                               placeholder="Nhập tên trưởng phòng..." autocomplete="off" />
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-end gap-3">
+                        <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="pb-stats-bar">
+        <div class="pb-stat-item">
+            <div>
+                <div class="pb-stat-value">@Model.Items.Count</div>
+                <div class="pb-stat-label">Tổng phòng ban</div>
+            </div>
+        </div>
+        <div class="pb-stat-divider"></div>
+        <div class="pb-stat-item">
+            <div>
+                <div class="pb-stat-value">@rootCount</div>
+                <div class="pb-stat-label">Phòng ban cấp 1</div>
+            </div>
+        </div>
+        <div class="pb-stat-divider"></div>
+        <div class="pb-stat-item">
+            <div>
+                <div class="pb-stat-value">@subCount</div>
+                <div class="pb-stat-label">Phòng ban trực thuộc</div>
+            </div>
+        </div>
+        <div class="pb-stat-divider"></div>
+        <div class="pb-stat-item">
+            <div>
+                <div class="pb-stat-value">@totalEmployees</div>
+                <div class="pb-stat-label">Tổng nhân viên</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Org Chart Panel -->
+    <div class="custom-panel pb-org-panel" id="orgPanel">
+        <div class="pb-org-header">
+            <div class="pb-org-title-group">
+                <h2 class="pb-org-title">Cơ cấu tổ chức</h2>
+                <p class="pb-org-subtitle">@Model.Items.Count phòng ban trong hệ thống</p>
+            </div>
+            <div class="pb-org-controls">
+                <button class="btn-green-solid pb-add-btn" type="button" id="btn-add-dept"
+                        data-bs-toggle="modal" data-bs-target="#createDepartment"
+                        style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    Thêm phòng ban
+                </button>
+                <div class="pb-edit-switch">
+                    <span class="pb-edit-label">Chỉnh sửa</span>
+                    <label class="pb-switch" for="orgEditMode" aria-label="Bật chế độ chỉnh sửa">
+                        <input type="checkbox" id="orgEditMode" role="switch" />
+                        <span class="pb-switch-thumb"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="pb-org-canvas">
+            <!-- Company root node -->
+            <div class="pb-company-row">
+                <button type="button" class="pb-toggle" id="togCompany"
+                        data-tree-toggle="orgDepartments" aria-expanded="true" aria-label="Thu gọn cơ cấu">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <div class="pb-company-card">
+                    <div class="pb-company-info">
+                        <strong>@Model.CompanyName</strong>
+                    </div>
+                    <div class="pb-company-badge">@Model.Items.Count phòng ban</div>
+                </div>
+            </div>
+
+            <!-- Org tree with smooth collapse container -->
+            <div id="orgDepartments" class="pb-tree-collapse">
+                <div class="pb-tree-collapse-inner">
+                    @if (Model.Roots.Count == 0)
+                    {
+                        <div class="pb-empty-tree">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c8d0db" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" class="pb-empty-icon" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                            <p>Không tìm thấy phòng ban phù hợp.</p>
+                            <button class="btn-green-solid pb-edit-action" type="button"
+                                    data-bs-toggle="modal" data-bs-target="#createDepartment">
+                                + Thêm phòng ban đầu tiên
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="pb-tree pb-tree-root">
+                            @foreach (var root in Model.Roots)
+                            {
+                                <partial name="_DepartmentTreeNode" model="root" />
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm phòng ban -->
+<div class="modal fade" id="createDepartment" tabindex="-1" aria-labelledby="createDeptTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form asp-action="Save" method="post" class="modal-content pb-modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header pb-modal-header">
+                <h5 class="modal-title" id="createDeptTitle">Thêm phòng ban mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body pb-modal-body">
+                <div class="pb-form-group">
+                    <label class="custom-label required" for="new-dept-name">Tên phòng ban</label>
+                    <input id="new-dept-name" name="Tenphongban" class="custom-input"
+                           required maxlength="150" placeholder="Nhập tên phòng ban..." />
+                </div>
+                <div class="pb-form-group">
+                    <label class="custom-label" for="new-dept-parent">Phòng ban cấp trên</label>
+                    <select id="new-dept-parent" name="PhongBanChaID" class="custom-input form-select">
+                        <option value="">— Trực thuộc công ty —</option>
+                        @foreach (var dept in allDepartments)
+                        {
+                            <option value="@dept.ID">@dept.Tenphongban</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer pb-modal-footer">
+                <button type="button" class="btn-green-outline" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn-green-solid">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    Lưu phòng ban
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Sửa phòng ban (per-department) -->
+@foreach (var item in Model.Items)
+{
+    <div class="modal fade" id="editDepartment-@item.Department.ID" tabindex="-1"
+         aria-labelledby="editDeptTitle-@item.Department.ID" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form asp-action="Save" method="post" class="modal-content pb-modal-content">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ID" value="@item.Department.ID" />
+                <div class="modal-header pb-modal-header">
+                    <h5 class="modal-title" id="editDeptTitle-@item.Department.ID">Sửa phòng ban</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body pb-modal-body">
+                    <div class="pb-form-group">
+                        <label class="custom-label required" for="dept-name-@item.Department.ID">Tên phòng ban</label>
+                        <input id="dept-name-@item.Department.ID" name="Tenphongban"
+                               value="@item.Department.Tenphongban"
+                               class="custom-input" required maxlength="150" />
+                    </div>
+                    <div class="pb-form-group">
+                        <label class="custom-label" for="dept-parent-@item.Department.ID">Phòng ban cấp trên</label>
+                        <select id="dept-parent-@item.Department.ID" name="PhongBanChaID" class="custom-input form-select">
+                            <option value="">— Trực thuộc công ty —</option>
+                            @foreach (var dept in allDepartments.Where(x => x.ID != item.Department.ID))
+                            {
+                                <option value="@dept.ID" selected="@(dept.ID == item.Department.PhongBanChaID)">
+                                    @dept.Tenphongban
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="pb-form-group">
+                        <label class="custom-label" for="dept-manager-@item.Department.ID">Trưởng phòng</label>
+                        <select id="dept-manager-@item.Department.ID" name="Matruongphong" class="custom-input form-select employee-select">
+                            <option value="">— Chưa phân công —</option>
+                            @foreach (var emp in item.Employees)
+                            {
+                                var managesAnother = managerDepartmentIds.TryGetValue(emp.ID, out var managedId) && managedId != item.Department.ID;
+                                if (managesAnother)
+                                {
+                                    continue;
+                                }
+
+                                <option value="@emp.ID"
+                                        data-employee-code="@emp.MaNhanVien"
+                                        data-employee-name="@emp.Ten"
+                                        selected="@(item.Department.Matruongphong == emp.ID)">
+                                    @emp.MaNhanVien - @emp.Ten
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer pb-modal-footer">
+                    <button type="button" class="btn-green-outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-green-solid">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- Modal Danh sách nhân viên theo phòng ban -->
+@foreach (var item in Model.Items)
+{
+    <div class="modal fade" id="staffDept-@item.Department.ID" tabindex="-1"
+         aria-labelledby="staffTitle-@item.Department.ID" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content pb-modal-content">
+                <div class="modal-header pb-modal-header">
+                    <div class="pb-modal-icon-wrap" style="background:linear-gradient(135deg,#43e97b,#38f9d7);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="staffTitle-@item.Department.ID">@item.Department.Tenphongban</h5>
+                        <small class="text-muted">@item.Employees.Count nhân viên đang làm việc</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body" style="padding: 0 1.5rem 0.5rem;">
+                    @if (item.Employees.Count == 0)
+                    {
+                        <div class="text-center py-5" style="color:#8a96a8;">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#cbd5e0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="d-block mx-auto mb-3" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            Phòng ban này chưa có nhân viên nào.
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="custom-table" style="min-width:550px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">#</th>
+                                    <th>Mã NV</th>
+                                    <th>Họ và tên</th>
+                                    <th>Chức vụ</th>
+                                    <th>Email</th>
+                                    <th>SĐT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int rowNum = 0; }
+                                @foreach (var emp in item.Employees)
+                                {
+                                    rowNum++;
+                                    <tr>
+                                        <td class="text-muted">@rowNum</td>
+                                        <td><strong style="color:#4a5468;">@emp.MaNhanVien</strong></td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="pb-avatar-sm">@(emp.Ten.Length > 0 ? emp.Ten[0].ToString().ToUpper() : "?")</div>
+                                                <span style="font-weight:500;color:#2d3748;">@emp.Ten</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (emp.ChucVu != null)
+                                            {
+                                                <span class="badge-status status-info" style="font-size:12px;">@emp.ChucVu.Chucvu</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td style="font-size:13px;color:#5c6c85;">@(emp.Email ?? "—")</td>
+                                        <td style="font-size:13px;color:#5c6c85;">@(emp.SDT ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+                <div class="modal-footer pb-modal-footer">
+                    <a asp-area="HR" asp-controller="NhanVien" asp-action="Index"
+                       asp-route-departmentId="@item.Department.ID"
+                       class="btn-green-outline" style="text-decoration:none;">
+                        Xem trong DS nhân viên
+                    </a>
+                    <button type="button" class="btn-green-solid" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* ── Alerts ─────────────────────────────── */
+    .pb-alert {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 18px; border-radius: 10px;
+        font-size: 14px; font-weight: 500; margin-bottom: 18px;
+    }
+    .pb-alert-success { background: #ecfdf5; color: #027a48; border: 1px solid #a7f3d0; }
+    .pb-alert-error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* ── Stats Bar ───────────────────────────── */
+    .pb-stats-bar {
+        display: flex; align-items: center; gap: 0;
+        background: #fff; border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        padding: 20px 28px; margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .pb-stat-item { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 160px; }
+    .pb-stat-divider { width: 1px; height: 48px; background: #edf0f5; margin: 0 24px; }
+    .pb-stat-icon {
+        width: 44px; height: 44px; border-radius: 12px;
+        display: grid; place-items: center; flex: 0 0 auto;
+    }
+    .pb-stat-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .pb-stat-value { font-size: 26px; font-weight: 750; color: #1e293b; line-height: 1; }
+    .pb-stat-label { font-size: 12px; color: #8a96a8; margin-top: 4px; }
+
+    /* ── Org Panel ───────────────────────────── */
+    .pb-org-panel { padding: 0 !important; overflow: hidden; }
+    .pb-org-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 20px; padding: 22px 28px; border-bottom: 1px solid #edf0f5;
+        flex-wrap: wrap;
+    }
+    .pb-org-title {
+        display: flex; align-items: center; gap: 10px;
+        margin: 0; font-size: 17px; font-weight: 700; color: #1e293b;
+    }
+    .pb-org-title svg { stroke: #22c55e; flex: 0 0 auto; }
+    .pb-org-subtitle { margin: 5px 0 0; font-size: 13px; color: #8a96a8; }
+    .pb-org-controls { display: flex; align-items: center; gap: 14px; }
+    .pb-add-btn { display: none; }
+    .pb-org-panel.is-editing .pb-add-btn { display: inline-flex !important; align-items: center; gap: 7px; padding: 9px 20px !important; }
+    .pb-edit-switch { display: flex; align-items: center; gap: 10px; }
+    .pb-edit-label { font-size: 13px; color: #5c6c85; font-weight: 500; white-space: nowrap; }
+    .pb-switch { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
+    .pb-switch input { opacity: 0; width: 0; height: 0; }
+    .pb-switch-thumb {
+        position: absolute; inset: 0; background: #d5dae3; border-radius: 999px;
+        transition: background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .pb-switch-thumb::before {
+        content: ""; position: absolute; left: 3px; top: 3px;
+        width: 18px; height: 18px; border-radius: 50%; background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,.18); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .pb-switch input:checked ~ .pb-switch-thumb { background: #22c55e; }
+    .pb-switch input:checked ~ .pb-switch-thumb::before { transform: translateX(20px); }
+
+    /* ── Smooth Collapse Container ────────────── */
+    .pb-tree-collapse {
+        display: grid;
+        grid-template-rows: 1fr;
+        transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        opacity: 1;
+    }
+    .pb-tree-collapse.is-collapsed {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .pb-tree-collapse-inner {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* ── Canvas ──────────────────────────────── */
+    .pb-org-canvas { padding: 30px 32px 40px; background: #f4f6f9; min-height: 240px; }
+
+    /* ── Company Card ────────────────────────── */
+    .pb-company-row { display: flex; align-items: center; gap: 12px; position: relative; z-index: 2; }
+    .pb-company-card {
+        flex: 1; display: flex; align-items: center; gap: 14px;
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        padding: 14px 20px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+        transition: all 0.25s ease;
+    }
+    .pb-company-card:hover {
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        border-color: #cbd5e1;
+    }
+    .pb-company-logo {
+        width: 42px; height: 42px; border-radius: 11px; flex: 0 0 auto;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        display: grid; place-items: center;
+        box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+    }
+    .pb-company-logo svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .pb-company-info strong { display: block; color: #0f172a; font-size: 15.5px; font-weight: 700; }
+    .pb-company-info small { display: block; color: #64748b; font-size: 12px; margin-top: 3px; }
+    .pb-company-badge {
+        margin-left: auto; background: #f0fdf4; color: #15803d;
+        border-radius: 999px; padding: 5px 14px; font-size: 12px; font-weight: 600;
+        white-space: nowrap; border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    /* ── Toggle Button ───────────────────────── */
+    .pb-toggle {
+        width: 28px; height: 28px; flex: 0 0 28px;
+        display: grid; place-items: center; padding: 0;
+        border: 1.5px solid #cbd5e1; border-radius: 50%;
+        background: #fff; color: #16a34a;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+        transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+        cursor: pointer; position: relative; z-index: 3;
+    }
+    .pb-toggle:hover { background: #f0fdf4; border-color: #22c55e; transform: scale(1.08); }
+    .pb-toggle svg { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .pb-toggle[aria-expanded="false"] svg { transform: rotate(-180deg); }
+
+    /* ── Tree & Connectors (Pixel-Perfect Alignment) ── */
+    .pb-tree {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 0 44px; /* Align child lines under parent toggle circle */
+        position: relative;
+    }
+    .pb-tree-root {
+        margin-top: 10px;
+    }
+    .pb-tree-node {
+        position: relative;
+        margin: 12px 0;
+    }
+    .pb-node-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+        min-height: 66px;
+    }
+
+    /* Vertical line segment for each node */
+    .pb-tree-node::before {
+        content: "";
+        position: absolute;
+        left: -30px; /* Exact center alignment under parent toggle */
+        top: -12px;  /* Spans to previous sibling */
+        bottom: -12px; /* Spans to next sibling */
+        width: 2px;
+        background-color: #86efac;
+        z-index: 1;
+    }
+
+    /* First child top connection */
+    .pb-tree-node:first-child::before {
+        top: -22px; /* Extends up to parent company/card row */
+    }
+
+    /* Last child: vertical line stops cleanly at horizontal branch */
+    .pb-tree-node:last-child::before {
+        bottom: auto;
+        height: 45px; /* From top: -12px to center of row (33px) */
+    }
+
+    /* Single child (both first and last) */
+    .pb-tree-node:only-child::before {
+        top: -22px;
+        bottom: auto;
+        height: 55px; /* From top: -22px to center of row (33px) */
+    }
+
+    /* Horizontal branch line into current node */
+    .pb-tree-node::after {
+        content: "";
+        position: absolute;
+        left: -30px;
+        top: 33px; /* Exact center of node row */
+        width: 32px; /* Reaches center of node toggle circle */
+        height: 2px;
+        background-color: #86efac;
+        z-index: 1;
+    }
+
+    .pb-toggle-placeholder {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ── Dept Card ───────────────────────────── */
+    .pb-dept-card {
+        flex: 1; min-width: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        padding: 12px 18px; min-height: 66px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+        transition: border-color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        position: relative; z-index: 2;
+    }
+    .pb-dept-card:hover {
+        border-color: #86efac;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(34, 197, 94, 0.12);
+    }
+    .pb-dept-main { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+    .pb-dept-icon {
+        width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px;
+        display: grid; place-items: center;
+        background: #f0fdf4; color: #16a34a;
+        box-shadow: 0 3px 8px rgba(34, 197, 94, 0.18);
+    }
+    .pb-dept-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .pb-dept-info h3 { margin: 0; font-size: 14px; font-weight: 650; color: #0f172a; }
+    .pb-dept-info p { margin: 4px 0 0; font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pb-dept-meta { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .pb-staff-btn {
+        border: 0; border-radius: 999px; padding: 6px 14px;
+        background: #edf8f2; color: #2e8b57; font-size: 12px; font-weight: 600;
+        white-space: nowrap; cursor: pointer; transition: all 0.2s ease;
+        border: 1px solid rgba(46, 139, 87, 0.12);
+    }
+    .pb-staff-btn:hover { background: #d4f0e3; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(46, 139, 87, 0.15); }
+    
+    .pb-node-actions {
+        display: flex; align-items: center; gap: 4px;
+        opacity: 0; max-width: 0; overflow: hidden; pointer-events: none;
+        transition: opacity 0.3s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s ease;
+    }
+    .pb-org-panel.is-editing .pb-node-actions {
+        opacity: 1; max-width: 160px; pointer-events: auto; margin-left: 6px;
+    }
+    .pb-node-actions form { margin: 0; }
+    .pb-edit-action { display: none; }
+    .pb-org-panel.is-editing .pb-edit-action { display: inline-flex !important; }
+
+    /* ── Empty ───────────────────────────────── */
+    .pb-empty-tree {
+        margin: 24px 0 0 40px; padding: 40px 24px; text-align: center;
+        border: 1.5px dashed #cbd5e1; border-radius: 14px;
+        background: rgba(255,255,255,.6); color: #64748b;
+    }
+    .pb-empty-icon { display: block; margin: 0 auto 14px; }
+    .pb-empty-tree p { margin: 0 0 18px; font-size: 14px; }
+
+    /* ── Modal Styles ────────────────────────── */
+    .modal-dialog.modal-lg { max-width: 640px; }
+    .pb-modal-content { border: 0; border-radius: 16px; overflow: visible; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15); }
+    .pb-modal-content > .modal-header,
+    .pb-modal-content > .pb-modal-header { border-radius: 16px 16px 0 0; overflow: hidden; }
+    .pb-modal-content > .pb-modal-footer { border-radius: 0 0 16px 16px; }
+    .pb-modal-header {
+        display: flex; align-items: center; gap: 14px;
+        padding: 20px 24px 16px; border-bottom: 1px solid #f0f3f7;
+        background: #fafbfd;
+    }
+    .pb-modal-header .modal-title { flex: 1; font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
+    .pb-modal-icon-wrap {
+        width: 40px; height: 40px; border-radius: 11px;
+        display: grid; place-items: center; flex: 0 0 auto;
+    }
+    .pb-modal-body { padding: 22px 24px 8px; }
+    .pb-form-group { margin-bottom: 18px; }
+    .pb-modal-footer {
+        padding: 14px 24px 20px; border-top: 1px solid #f0f3f7;
+        background: #fafbfd; display: flex; justify-content: flex-end; gap: 10px;
+    }
+
+    .pb-avatar-sm {
+        width: 30px; height: 30px; border-radius: 50%; flex: 0 0 30px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff; font-size: 12px; font-weight: 700;
+        display: grid; place-items: center;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @@media (max-width: 767.98px) {
+        .pb-stats-bar { flex-direction: column; align-items: flex-start; gap: 14px; }
+        .pb-stat-divider { display: none; }
+        .pb-org-header { flex-direction: column; align-items: flex-start; padding: 18px 20px; }
+        .pb-org-canvas { padding: 20px 14px 28px; overflow-x: auto; }
+        .pb-company-row, .pb-tree { min-width: 580px; }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        (() => {
+            // ── Edit mode toggle ──────────────────────
+            const panel = document.getElementById('orgPanel');
+            const addBtn = document.getElementById('btn-add-dept');
+            const editSwitch = document.getElementById('orgEditMode');
+            editSwitch?.addEventListener('change', () => {
+                const editing = editSwitch.checked;
+                panel?.classList.toggle('is-editing', editing);
+                if (addBtn) addBtn.style.display = editing ? 'inline-flex' : 'none';
+            });
+
+            // ── Add root/child department ────────────
+            const createModal = document.getElementById('createDepartment');
+            const createForm = createModal?.querySelector('form');
+            const createTitle = document.getElementById('createDeptTitle');
+            const parentSelect = document.getElementById('new-dept-parent');
+            document.querySelectorAll('[data-add-department]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const parentId = button.dataset.parentDepartment ?? '';
+                    const parentName = button.dataset.parentName ?? '';
+                    if (parentSelect) {
+                        parentSelect.value = parentId;
+                        parentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    if (createTitle) {
+                        createTitle.textContent = parentId
+                            ? `Thêm đơn vị trực thuộc ${parentName}`
+                            : 'Thêm phòng ban mới';
+                    }
+                });
+            });
+            createModal?.addEventListener('hidden.bs.modal', () => {
+                createForm?.reset();
+                if (createTitle) createTitle.textContent = 'Thêm phòng ban mới';
+            });
+
+            // ── Tree collapse/expand (Smooth Transition) ──────────────────
+            document.querySelectorAll('[data-tree-toggle]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const targetId = btn.dataset.treeToggle;
+                    const target = document.getElementById(targetId);
+                    if (!target) return;
+
+                    const isCollapsed = target.classList.toggle('is-collapsed');
+                    btn.setAttribute('aria-expanded', String(!isCollapsed));
+                });
+            });
+        })();
+    </script>
+}

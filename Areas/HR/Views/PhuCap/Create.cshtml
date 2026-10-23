@@ -1,0 +1,4 @@
+@model ScopedAllowanceFormViewModel
+@{ ViewData["Title"] = "Thêm phụ cấp"; }
+<div class="page-container"><div class="custom-panel"><div class="panel-header">Thêm loại phụ cấp</div><form asp-action="Create" method="post"><partial name="_Form" model="Model"/></form></div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial"/> }

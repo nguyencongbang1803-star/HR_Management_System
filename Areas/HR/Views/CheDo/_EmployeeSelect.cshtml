@@ -1,0 +1,2 @@
+@model IEnumerable<NhanVien>
+<div class="mb-3"><label class="custom-label required">Nhân viên</label><select name="NhanVienID" required class="custom-input form-select employee-select"><option value="">Chọn nhân viên</option>@foreach(var n in Model){<option value="@n.ID" data-employee-code="@n.MaNhanVien" data-employee-name="@n.Ten">@n.MaNhanVien - @n.Ten</option>}</select></div>

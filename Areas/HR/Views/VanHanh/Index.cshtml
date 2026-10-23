@@ -1,0 +1,137 @@
+@{
+    ViewData["Title"]="Tăng ca";
+    var overtime=(IReadOnlyList<DangKyTangCa>)ViewBag.TangCas;
+    var canDecide=(IReadOnlySet<int>)ViewBag.CanDecideOvertime;
+}
+
+<div class="page-container">
+    <div class="custom-panel mb-4">
+        <div class="panel-header">
+            <strong style="color: #4a5468; font-size: 16px;">Yêu cầu tăng ca</strong>
+        </div>
+        <div class="record-count">(@overtime.Count) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Nhân viên</th>
+                        <th>Ngày/giờ</th>
+                        <th>Lý do</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var x in overtime){
+                        <tr>
+                            <td><strong style="color: #4a5468;">@x.NhanVien?.Ten</strong></td>
+                            <td>@x.Ngay.ToString("dd/MM/yyyy") · @x.GioBatDau.ToString("hh\\:mm")-@x.GioKetThuc.ToString("hh\\:mm")</td>
+                            <td>
+                                @x.LyDo
+                                @foreach(var evidence in x.MinhChungs){
+                                    <div class="file-evidence-item">
+                                        <button type="button" class="file-preview-trigger" data-file-preview data-preview-url="@Url.Action("PreviewOvertimeEvidence", new { id = evidence.ID })" data-download-url="@Url.Action("DownloadOvertimeEvidence", new { id = evidence.ID })" data-file-name="@evidence.TenFileGoc" data-content-type="@evidence.ContentType">@evidence.TenFileGoc</button>
+                                        <a asp-action="DownloadOvertimeEvidence" asp-route-id="@evidence.ID" class="file-download-link">Tải xuống</a>
+                                    </div>
+                                }
+                                @if(x.MinhChungs.Count==0&&!string.IsNullOrWhiteSpace(x.DuongDanMinhChung)){
+                                    <a asp-action="DownloadOvertimeProof" asp-route-id="@x.ID" class="d-block small">@x.TenFileMinhChung</a>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge-status @(x.TrangThai==ApprovalStatuses.Approved?"status-success":x.TrangThai==ApprovalStatuses.Rejected?"status-danger":x.TrangThai==ApprovalStatuses.ManagerApproved?"status-info":"status-warning")">@HrmDisplay.Leave(x.TrangThai)</span>
+                                @if(x.TrangThai==ApprovalStatuses.Approved){
+                                    <small class="d-block text-muted mt-1">(@x.SoGioDuyet giờ × @x.HeSo)</small>
+                                }
+                                @if(x.TrangThai==ApprovalStatuses.ManagerApproved){
+                                    <small class="d-block text-muted mt-1">Chờ HR đối chiếu máy chấm công</small>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if(canDecide.Contains(x.ID) && x.TrangThai==ApprovalStatuses.Pending && User.IsInRole("QuanLy")){
+                                    <div class="approval-workflow" data-approval-workflow>
+                                        <div class="approval-decision-actions" data-approval-actions>
+                                            <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                            <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </div>
+                                        <form asp-action="DecideOvertime" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                                            <input type="hidden" name="id" value="@x.ID"/>
+                                            <input type="hidden" name="decision" data-approval-decision-input/>
+                                            <div class="approval-response-card">
+                                                <div class="approval-modal-header">
+                                                    <div class="approval-modal-title">
+                                                        <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                                        <span data-approval-title>Phản hồi khi duyệt</span>
+                                                    </div>
+                                                    <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                                </div>
+                                                <div class="approval-modal-body">
+                                                    <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                                    <textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                                </div>
+                                                <div class="approval-modal-footer">
+                                                    <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                                    <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                }
+                                else if(canDecide.Contains(x.ID)){
+                                    <div class="approval-workflow" data-approval-workflow>
+                                        <div class="approval-decision-actions" data-approval-actions>
+                                            <button type="button" class="action-btn action-btn-approve" data-approval-decision="Approved" title="Duyệt yêu cầu" aria-label="Duyệt">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                            <button type="button" class="action-btn action-btn-reject" data-approval-decision="Rejected" title="Từ chối yêu cầu" aria-label="Từ chối">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </div>
+                                        <form asp-action="DecideOvertime" method="post" class="approval-response-form text-start" data-approval-form hidden>
+                                            <input type="hidden" name="id" value="@x.ID"/>
+                                            <input type="hidden" name="decision" data-approval-decision-input/>
+                                            <div class="approval-response-card">
+                                                <div class="approval-modal-header">
+                                                    <div class="approval-modal-title">
+                                                        <span class="approval-modal-title-badge badge-approved" data-approval-badge>✓</span>
+                                                        <span data-approval-title>Phản hồi khi duyệt</span>
+                                                    </div>
+                                                    <button type="button" class="btn-close-modal" data-approval-cancel aria-label="Đóng">&times;</button>
+                                                </div>
+                                                <div class="approval-modal-body">
+                                                    <div class="mb-3" data-approved-only>
+                                                        <label class="custom-label">Số giờ được duyệt</label>
+                                                        <div class="d-flex gap-2">
+                                                            <input name="approvedHours" type="number" min="0.25" step="0.25" value="@x.SoGioDangKy" class="custom-input"/>
+                                                            <input value="Hệ số × 2" class="custom-input text-center" style="width:120px;" readonly/>
+                                                        </div>
+                                                    </div>
+                                                    <label class="custom-label">Phản hồi <span class="text-danger">*</span></label>
+                                                    <textarea name="response" class="custom-input" rows="3" required maxlength="500" placeholder="Nhập lý do hoặc ý kiến phản hồi..."></textarea>
+                                                </div>
+                                                <div class="approval-modal-footer">
+                                                    <button type="button" class="btn-green-outline" data-approval-cancel>Quay lại</button>
+                                                    <button type="submit" class="btn-green-solid" data-approval-submit-btn>Xác nhận</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if(overtime.Count==0){
+                        <tr><td colspan="5" class="text-center py-4" style="color:#5c6c85;">Chưa có yêu cầu OT.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<partial name="_FilePreviewModal" />

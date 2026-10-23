@@ -1,0 +1,27 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+*.log
+appsettings.Local.json
+uploads/
+.keys/
+App_Data/
+publish_folder/
+.tmp/
+.config/
+*.crswap
+# Scripts nội bộ không cần thiết khi clone
+scripts/merge-ndkm-into-qlns.sql
+scripts/start-face-attendance.ps1
+scripts/write_css.ps1
+# Tài liệu nội bộ / báo cáo
+*.docx
+*.drawio
+*.drawio.crswap
+# Ảnh sơ đồ (optional - bỏ comment nếu muốn ignore)
+# SoDoClass-QLNS.png
+# SoDoClass-QLNS.svg

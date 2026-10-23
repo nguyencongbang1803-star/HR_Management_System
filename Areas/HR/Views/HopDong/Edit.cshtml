@@ -1,0 +1,13 @@
+@model ContractFormViewModel
+@{ ViewData["Title"] = "Cập nhật hợp đồng"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Cập nhật hợp đồng · @Model.SoHopDong</div>
+        <form asp-action="Edit" asp-route-id="@Model.ID" method="post" enctype="multipart/form-data">
+            <partial name="_Form" model="Model" />
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,43 @@
+@model IReadOnlyList<ChinhSachBhxh>
+@{
+    ViewData["Title"] = "Quản lý BHXH";
+    string Scope(ChinhSachBhxh x) => x.PhamVi switch
+    {
+        AllowanceScopes.Company => "Toàn công ty",
+        AllowanceScopes.Department => $"Phòng ban: {x.PhongBan?.Tenphongban}",
+        AllowanceScopes.Position => $"Chức vụ: {x.ChucVu?.Chucvu}",
+        AllowanceScopes.Employee => $"Nhân viên: {x.NhanVien?.MaNhanVien} - {x.NhanVien?.Ten}",
+        _ => "Không xác định"
+    };
+    string Duration(ChinhSachBhxh x) => x.KieuThoiHan == AllowanceDurations.Monthly ? "Mỗi tháng" : $"{x.SoThang} tháng";
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header"><strong>Quản lý BHXH</strong></div>
+        <form method="get" class="row g-3 align-items-end" data-auto-submit-search>
+            <div class="col-md-5"><label class="custom-label">Tìm kiếm</label><input name="search" value="@ViewBag.Search" class="custom-input" placeholder="Tên khoản, phòng ban, chức vụ hoặc nhân viên"/></div>
+            <div class="col-md-3"><label class="form-check"><input name="showInactive" value="true" type="checkbox" class="form-check-input" checked="@(ViewBag.ShowInactive == true)"/><span class="form-check-label">Hiện chính sách đã ngừng</span></label></div>
+            <div class="col-md-4 d-flex justify-content-end gap-2"><a asp-action="Index" class="btn-green-outline">Tất cả</a><a asp-action="Create" class="btn-green-solid">Thêm chính sách BHXH</a></div>
+        </form>
+    </div>
+    <div class="custom-panel">
+        <div class="record-count">(@Model.Count) chính sách BHXH</div>
+        <div class="table-wrapper"><table class="custom-table"><thead><tr><th>Tên khoản</th><th>Số tiền/tháng</th><th>Quy mô áp dụng</th><th>Thời gian</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+        @foreach (var x in Model)
+        {
+            var startMonth = new DateTime(x.NgayBatDau.Year, x.NgayBatDau.Month, 1);
+            var endMonth = x.KieuThoiHan == AllowanceDurations.FixedMonths ? startMonth.AddMonths(x.SoThang ?? 0).AddDays(-1) : (DateTime?)null;
+            <tr>
+                <td><strong>@x.TenKhoan</strong></td>
+                <td><strong>@x.SoTienDong.ToString("N0") ₫</strong></td>
+                <td>@Scope(x)</td>
+                <td><strong>@Duration(x)</strong><div class="small text-muted">Từ @startMonth.ToString("MM/yyyy")@(endMonth.HasValue ? $" đến {endMonth:MM/yyyy}" : "")</div></td>
+                <td><span class="badge-status @(x.HoatDong ? "status-success" : "status-danger")">@(x.HoatDong ? "Đang áp dụng" : "Đã ngừng")</span></td>
+                <td><div class="d-flex gap-2"><a asp-action="Edit" asp-route-id="@x.ID" class="btn-green-outline">Sửa</a><form asp-action="ToggleStatus" method="post"><input type="hidden" name="id" value="@x.ID"/><button class="btn-green-outline @(x.HoatDong ? "text-danger" : null)">@(x.HoatDong ? "Ngừng" : "Kích hoạt")</button></form></div></td>
+            </tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="6" class="text-center text-muted">Chưa có chính sách BHXH.</td></tr> }
+        </tbody></table></div>
+    </div>
+</div>

@@ -1,0 +1,13 @@
+@model EmployeeFormViewModel
+@{ ViewData["Title"] = "Thêm nhân viên"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Thêm nhân viên</div>
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <partial name="_Form" model="Model" />
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

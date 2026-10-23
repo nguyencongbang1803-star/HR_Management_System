@@ -1,0 +1,21 @@
+@model AttendanceAdjustmentFormViewModel
+@{ ViewData["Title"] = "Điều chỉnh chấm công"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">Yêu cầu điều chỉnh công</div>
+        <form asp-action="RequestAttendanceAdjustment" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input asp-for="ChamCongID" type="hidden"/><input asp-for="Ngay" type="hidden"/>
+            <div class="row g-4">
+                <div class="col-md-4"><label class="custom-label">Ngày chấm công</label><input value="@Model.Ngay.ToString("dd/MM/yyyy")" class="custom-input" readonly /></div>
+                <div class="col-md-4"><label asp-for="GioVao" class="custom-label"></label><input asp-for="GioVao" class="custom-input" /></div>
+                <div class="col-md-4"><label asp-for="GioRa" class="custom-label"></label><input asp-for="GioRa" class="custom-input" /></div>
+                <div class="col-12"><label asp-for="LyDo" class="custom-label required"></label><textarea asp-for="LyDo" class="custom-input" rows="4"></textarea><span asp-validation-for="LyDo" class="text-danger"></span></div>
+                <div class="col-12"><label asp-for="AnhMinhChung" class="custom-label required"></label><input asp-for="AnhMinhChung" class="custom-input" type="file" multiple accept="image/jpeg,image/png"/><span asp-validation-for="AnhMinhChung" class="text-danger"></span><small class="d-block text-muted mt-1">Có thể chọn nhiều ảnh JPG/PNG.</small></div>
+            </div>
+            <div class="d-flex justify-content-end gap-3 mt-4"><a asp-action="Index" class="btn-green-outline">Hủy</a><button class="btn-green-solid">Gửi yêu cầu</button></div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

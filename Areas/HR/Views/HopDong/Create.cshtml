@@ -1,0 +1,19 @@
+@model ContractFormViewModel
+@{ ViewData["Title"] = Model.HopDongTruocID.HasValue ? "Gia hạn hợp đồng" : "Tạo hợp đồng"; }
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header">@ViewData["Title"]</div>
+        @if (!Model.HopDongTruocID.HasValue)
+        {
+            <div class="d-flex justify-content-end mb-3">
+                <a asp-action="Index" asp-fragment="contract-list" class="btn-green-outline">Gia hạn hợp đồng hiện có</a>
+            </div>
+        }
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <partial name="_Form" model="Model" />
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

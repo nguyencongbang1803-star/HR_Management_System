@@ -1,0 +1,125 @@
+@model HrWorkflowIndexViewModel
+@{
+    ViewData["Title"] = "Quy trình nhân sự";
+    string RequestStatus(string value) => value switch
+    {
+        WorkforceRequestStatuses.InternalSelection => "Đang chọn nhân sự nội bộ",
+        WorkforceRequestStatuses.Recruiting => "Đang tuyển dụng",
+        WorkforceRequestStatuses.Interviewing => "Đang phỏng vấn",
+        WorkforceRequestStatuses.Onboarding => "Đào tạo hội nhập",
+        WorkforceRequestStatuses.Completed => "Hoàn tất",
+        WorkforceRequestStatuses.Rejected => "Từ chối",
+        _ => "Chờ Nhân sự xem xét"
+    };
+    string StatusClass(string value) => value switch
+    {
+        WorkforceRequestStatuses.Completed => "status-success",
+        WorkforceRequestStatuses.Rejected => "status-danger",
+        WorkforceRequestStatuses.Pending => "status-warning",
+        _ => "status-info"
+    };
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header"><strong>1. Tiếp nhận yêu cầu nhân lực</strong></div>
+        <p class="text-muted">Trưởng phòng hoặc bộ phận Nhân sự ghi nhận vị trí, số lượng và lý do cần bổ sung. Mỗi yêu cầu được cấp mã để theo dõi xuyên suốt.</p>
+        <form asp-action="CreateRequest" method="post" class="row g-3">
+            <div class="col-md-3">
+                <label class="custom-label">Phòng ban</label>
+                <select name="PhongBanID" class="custom-input" required>
+                    <option value="">-- Chọn phòng ban --</option>
+                    @foreach (var x in Model.Departments) { <option value="@x.ID">@x.Tenphongban</option> }
+                </select>
+            </div>
+            <div class="col-md-3"><label class="custom-label">Vị trí cần bổ sung</label><input name="ViTriCanBoSung" class="custom-input" maxlength="150" required /></div>
+            <div class="col-md-2"><label class="custom-label">Số lượng</label><input name="SoLuong" type="number" min="1" max="100" value="1" class="custom-input" required /></div>
+            <div class="col-md-4"><label class="custom-label">Lý do</label><input name="LyDo" class="custom-input" maxlength="1000" required /></div>
+            <div class="col-12 text-end"><button class="btn-green-solid">Gửi yêu cầu</button></div>
+        </form>
+    </div>
+
+    <div class="custom-panel">
+        <div class="panel-header"><strong>2. Kế hoạch tuyển dụng, điều chuyển và hội nhập</strong></div>
+        <div class="record-count">(@Model.WorkforceRequests.Count) yêu cầu</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead><tr><th>Yêu cầu</th><th>Nội dung</th><th>Kế hoạch</th><th>Trạng thái</th><th>Xử lý</th></tr></thead>
+                <tbody>
+                @foreach (var x in Model.WorkforceRequests)
+                {
+                    <tr>
+                        <td><strong>@x.MaYeuCau</strong><small class="d-block text-muted">@x.NgayTao.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                        <td><strong>@x.ViTriCanBoSung (@x.SoLuong)</strong><small class="d-block text-muted">@x.PhongBan?.Tenphongban · @x.LyDo</small></td>
+                        <td>
+                            @(x.HinhThucBoSung == WorkforceSupplyMethods.InternalTransfer ? "Điều chuyển nội bộ" :
+                              x.HinhThucBoSung == WorkforceSupplyMethods.ExternalRecruitment ? "Tuyển mới" : "Chưa xác định")
+                            @if (x.NhanVienNoiBo is not null) { <small class="d-block text-muted">@x.NhanVienNoiBo.Ten</small> }
+                            @if (!string.IsNullOrWhiteSpace(x.TenUngVien)) { <small class="d-block text-muted">Ứng viên: @x.TenUngVien</small> }
+                        </td>
+                        <td><span class="badge-status @StatusClass(x.TrangThai)">@RequestStatus(x.TrangThai)</span></td>
+                        <td style="min-width:360px">
+                            @if ((User.IsInRole("Admin") || User.IsInRole("HR")) && x.TrangThai == WorkforceRequestStatuses.Pending)
+                            {
+                                <form asp-action="PlanRequest" method="post" class="row g-2">
+                                    <input type="hidden" name="ID" value="@x.ID" />
+                                    <div class="col-5"><select name="HinhThucBoSung" class="custom-input" required><option value="ExternalRecruitment">Tuyển mới</option><option value="InternalTransfer">Điều chuyển nội bộ</option></select></div>
+                                    <div class="col-7"><select name="NhanVienNoiBoID" class="custom-input"><option value="">Nhân viên nội bộ (nếu có)</option>@foreach(var e in Model.Employees){<option value="@e.ID">@e.MaNhanVien - @e.Ten</option>}</select></div>
+                                    <div class="col-12"><textarea name="MoTaCongViec" rows="2" maxlength="4000" class="custom-input" placeholder="Mô tả công việc và tiêu chí tuyển chọn" required></textarea></div>
+                                    <div class="col-12"><input name="GhiChuXuLy" class="custom-input" placeholder="Ghi chú kế hoạch" maxlength="1000" /></div>
+                                    <div class="col-12"><button class="btn-green-solid">Lập kế hoạch</button></div>
+                                </form>
+                            }
+                            else if ((User.IsInRole("Admin") || User.IsInRole("HR")) && x.TrangThai is not (WorkforceRequestStatuses.Completed or WorkforceRequestStatuses.Rejected))
+                            {
+                                <form asp-action="UpdateStage" method="post" class="row g-2">
+                                    <input type="hidden" name="ID" value="@x.ID" />
+                                    <div class="col-5"><select name="TrangThai" class="custom-input" required>
+                                        @if(x.TrangThai==WorkforceRequestStatuses.Recruiting){<option value="Interviewing">Chuyển sang phỏng vấn</option>}
+                                        @if(x.TrangThai is WorkforceRequestStatuses.Interviewing or WorkforceRequestStatuses.InternalSelection){<option value="Onboarding">Chuyển sang hội nhập</option>}
+                                        @if(x.TrangThai==WorkforceRequestStatuses.Onboarding){<option value="Completed">Hoàn tất</option>}
+                                        <option value="Rejected">Dừng/từ chối</option>
+                                    </select></div>
+                                    <div class="col-7"><input name="TenUngVien" class="custom-input" maxlength="150" value="@x.TenUngVien" placeholder="Tên ứng viên (khi phỏng vấn)" /></div>
+                                    <div class="col-5"><input name="NgayPhongVan" type="date" class="custom-input" value="@x.NgayPhongVan?.ToString("yyyy-MM-dd")" /></div>
+                                    <div class="col-7"><input name="GhiChuXuLy" class="custom-input" maxlength="1000" placeholder="Kết quả/ghi chú xử lý" /></div>
+                                    <div class="col-12"><button class="btn-green-outline">Cập nhật tiến độ</button></div>
+                                </form>
+                            }
+                            else
+                            {
+                                <small class="text-muted">@x.GhiChuXuLy</small>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.WorkforceRequests.Count == 0) { <tr><td colspan="5" class="text-center py-4 text-muted">Chưa có yêu cầu nhân lực.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="custom-panel">
+        <div class="panel-header"><strong>3. Đánh giá hiệu quả công việc</strong></div>
+        <p class="text-muted">Điểm từ 1 đến 5 là căn cứ minh bạch cho khen thưởng, đào tạo, thăng chức hoặc xem xét hợp đồng.</p>
+        <form asp-action="CreateReview" method="post" class="row g-3 mb-4">
+            <div class="col-md-4"><label class="custom-label">Nhân viên</label><select name="NhanVienID" class="custom-input" required><option value="">-- Chọn nhân viên --</option>@foreach(var e in Model.Employees){<option value="@e.ID">@e.MaNhanVien - @e.Ten</option>}</select></div>
+            <div class="col-md-2"><label class="custom-label">Từ ngày</label><input name="TuNgay" type="date" value="@($"{DateTime.Today.Year}-01-01")" class="custom-input" required /></div>
+            <div class="col-md-2"><label class="custom-label">Đến ngày</label><input name="DenNgay" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="custom-input" required /></div>
+            <div class="col-md-1"><label class="custom-label">Chất lượng</label><input name="ChatLuongCongViec" type="number" min="1" max="5" value="3" class="custom-input" /></div>
+            <div class="col-md-1"><label class="custom-label">Tiến độ</label><input name="TienDoCongViec" type="number" min="1" max="5" value="3" class="custom-input" /></div>
+            <div class="col-md-1"><label class="custom-label">Hợp tác</label><input name="TinhThanHopTac" type="number" min="1" max="5" value="3" class="custom-input" /></div>
+            <div class="col-md-1"><label class="custom-label">Kỷ luật</label><input name="KyLuat" type="number" min="1" max="5" value="3" class="custom-input" /></div>
+            <div class="col-md-4"><textarea name="DiemManh" class="custom-input" rows="2" maxlength="2000" placeholder="Điểm mạnh"></textarea></div>
+            <div class="col-md-4"><textarea name="NoiDungCanCaiThien" class="custom-input" rows="2" maxlength="2000" placeholder="Nội dung cần cải thiện"></textarea></div>
+            <div class="col-md-4"><textarea name="DeXuat" class="custom-input" rows="2" maxlength="1000" placeholder="Đề xuất: thưởng, đào tạo, thăng chức, gia hạn..."></textarea></div>
+            <div class="col-12 text-end"><button class="btn-green-solid">Lưu đánh giá</button></div>
+        </form>
+        <div class="table-wrapper">
+            <table class="custom-table"><thead><tr><th>Nhân viên</th><th>Kỳ đánh giá</th><th>Điểm</th><th>Người đánh giá</th><th>Nhận xét và đề xuất</th></tr></thead><tbody>
+            @foreach(var x in Model.PerformanceReviews){<tr><td><strong>@x.NhanVien?.Ten</strong><small class="d-block text-muted">@x.NhanVien?.PhongBan?.Tenphongban</small></td><td>@x.TuNgay.ToString("dd/MM/yyyy") - @x.DenNgay.ToString("dd/MM/yyyy")</td><td><strong>@x.DiemTrungBinh.ToString("0.00")/5</strong><small class="d-block text-muted">CL @x.ChatLuongCongViec · TĐ @x.TienDoCongViec · HT @x.TinhThanHopTac · KL @x.KyLuat</small></td><td>@x.NguoiDanhGia</td><td>@x.DiemManh<small class="d-block text-muted">Cải thiện: @x.NoiDungCanCaiThien</small><small class="d-block text-muted">Đề xuất: @x.DeXuat</small></td></tr>}
+            @if(Model.PerformanceReviews.Count==0){<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có phiếu đánh giá.</td></tr>}
+            </tbody></table>
+        </div>
+    </div>
+</div>

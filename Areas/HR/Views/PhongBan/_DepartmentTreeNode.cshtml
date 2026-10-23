@@ -1,0 +1,152 @@
+@model DepartmentTreeNodeViewModel
+@{
+    var item = Model.Item;
+    var hasChildren = Model.Children.Count > 0;
+    var childrenId = $"dept-children-{item.Department.ID}";
+
+    // Gradient xoay vòng theo ID phòng ban - TIC HRM Green Theme
+    var gradients = new[]
+    {
+        "linear-gradient(135deg,#22c55e,#16a34a)",
+        "linear-gradient(135deg,#16a34a,#15803d)",
+        "linear-gradient(135deg,#4ade80,#22c55e)",
+        "linear-gradient(135deg,#15803d,#166534)",
+        "linear-gradient(135deg,#86efac,#16a34a)",
+        "linear-gradient(135deg,#22c55e,#15803d)",
+        "linear-gradient(135deg,#34d399,#059669)",
+        "linear-gradient(135deg,#10b981,#047857)",
+    };
+    var iconGradient = gradients[item.Department.ID % gradients.Length];
+
+    // Chữ cái đầu tên trưởng phòng
+    var managerInitial = item.ManagerName is { Length: > 0 } mn
+        ? mn.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?[0].ToString().ToUpper() ?? "?"
+        : null;
+}
+
+<li class="pb-tree-node">
+    <div class="pb-node-row">
+        @if (hasChildren)
+        {
+            <button type="button" class="pb-toggle" data-tree-toggle="@childrenId"
+                    aria-expanded="true" aria-label="Thu gọn phòng ban @item.Department.Tenphongban">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+        }
+        else
+        {
+            <span class="pb-toggle-placeholder" aria-hidden="true"></span>
+        }
+
+        <article class="pb-dept-card">
+            <!-- Trái: thông tin phòng ban -->
+            <div class="pb-dept-main">
+                <div class="pb-dept-info">
+                    <h3>@item.Department.Tenphongban</h3>
+                    <p>
+                        @if (item.ManagerName is not null)
+                        {
+                            <span class="pb-manager-chip">
+                                <span class="pb-manager-avatar">@managerInitial</span>
+                                @item.ManagerName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="pb-no-manager">Chưa phân công trưởng phòng</span>
+                        }
+                        @if (hasChildren)
+                        {
+                            <span class="pb-children-badge">@Model.Children.Count đơn vị con</span>
+                        }
+                    </p>
+                </div>
+            </div>
+
+            <!-- Phải: hành động (Edit mode) -->
+            <div class="pb-dept-meta">
+                <div class="pb-node-actions" role="group" aria-label="Hành động phòng ban @item.Department.Tenphongban">
+                    <!-- Thêm đơn vị con -->
+                    <button class="action-btn pb-add-child-btn" type="button"
+                            title="Thêm đơn vị trực thuộc"
+                            data-add-department
+                            data-parent-department="@item.Department.ID"
+                            data-parent-name="@item.Department.Tenphongban"
+                            data-bs-toggle="modal" data-bs-target="#createDepartment"
+                            aria-label="Thêm đơn vị trực thuộc @item.Department.Tenphongban">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <!-- Sửa -->
+                    <button class="action-btn" type="button" title="Phân công trưởng phòng"
+                            data-bs-toggle="modal" data-bs-target="#editDepartment-@item.Department.ID"
+                            aria-label="Phân công trưởng phòng cho @item.Department.Tenphongban">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    </button>
+                    <button class="action-btn" type="button" title="Sửa phòng ban"
+                            data-bs-toggle="modal" data-bs-target="#editDepartment-@item.Department.ID"
+                            aria-label="Sửa phòng ban @item.Department.Tenphongban">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <!-- Xóa -->
+                    <form asp-action="Delete" asp-route-id="@item.Department.ID" method="post"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa phòng ban «@item.Department.Tenphongban»?');">
+                        @Html.AntiForgeryToken()
+                        <button class="action-btn text-danger" type="submit" title="Xóa phòng ban"
+                                aria-label="Xóa phòng ban @item.Department.Tenphongban">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    @if (hasChildren)
+    {
+        <div id="@childrenId" class="pb-tree-collapse">
+            <div class="pb-tree-collapse-inner">
+                <ul class="pb-tree">
+                    @foreach (var child in Model.Children)
+                    {
+                        <partial name="_DepartmentTreeNode" model="child" />
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+</li>
+
+<style>
+    .pb-manager-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        color: #5c6c85; font-size: 12px;
+    }
+    .pb-manager-avatar {
+        width: 18px; height: 18px; border-radius: 50%; flex: 0 0 18px;
+        background: linear-gradient(135deg,#22c55e,#16a34a);
+        color: #fff; font-size: 9px; font-weight: 700;
+        display: grid; place-items: center;
+    }
+    .pb-no-manager { color: #b0b9c8; font-size: 12px; font-style: italic; }
+    .pb-children-badge {
+        display: inline-block; margin-left: 8px;
+        background: #f0fdf4; color: #16a34a;
+        border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600;
+    }
+    .action-btn {
+        display: grid; place-items: center; width: 34px; height: 34px;
+        border: 0; border-radius: 50%; background: #f2f4f7; color: #526c8d;
+        cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0;
+    }
+    .action-btn:hover { background: #e4e7ec; color: #155eef; transform: scale(1.08); }
+    .action-btn.text-danger:hover { background: #fef2f2; color: #b42318; transform: scale(1.08); }
+    .action-btn.pb-add-child-btn:hover { background: #edf8f2; color: #329565; transform: scale(1.08); }
+    .pb-dept-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>

@@ -1,0 +1,234 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    var faceAttendanceUrl = Configuration["FaceAttendance:KioskUrl"] ?? "http://localhost:5000/?device=front-door";
+    var faceEnrollmentUrl = Configuration["FaceAttendance:EnrollmentUrl"] ?? "http://localhost:5000/?device=front-door&admin=1";
+    var isHr = User.IsInRole("HR");
+    var isManager = User.IsInRole("QuanLy");
+    var isAdmin = User.IsInRole("Admin");
+    var isEmployeeOnly = User.IsInRole("NhanVien") && !isHr && !isManager && !isAdmin;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var employeeIdClaim = User.FindFirst("NhanVienID")?.Value;
+    var hasEmployeeProfile = int.TryParse(employeeIdClaim, out var currentEmployeeId);
+    var currentDisplayName = User.FindFirst("NhanVienTen")?.Value ?? User.Identity?.Name ?? "User";
+    var currentRoleLabel = isAdmin ? "Quản trị viên" : isHr && isManager ? "Trưởng phòng HR" : isHr ? "Nhân viên HR" : isManager ? "Quản lý" : "Nhân viên";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#22c55e" />
+    <title>@ViewData["Title"] - TIC HRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="app-shell">
+        <div class="sidebar-backdrop" data-sidebar-close></div>
+        <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+            <div class="sidebar-brand-wrap">
+                <a class="sidebar-brand-box" asp-area="@(isEmployeeOnly ? "Employee" : "HR")" asp-controller="@(isEmployeeOnly ? "Home" : isManager && !isHr && !isAdmin ? "NhanVien" : "Dashboard")" asp-action="Index">
+                    <span class="brand-logo" aria-hidden="true"><span>T</span></span>
+                    <span class="brand-text">
+                        <strong>TIC HRM</strong>
+                        <small>@(isEmployeeOnly ? "Cổng nhân viên" : isManager && !isHr && !isAdmin ? "Cổng quản lý" : "Quản trị nhân sự")</small>
+                    </span>
+                </a>
+                <button class="sidebar-collapse" type="button" data-sidebar-collapse aria-label="Thu gọn thanh điều hướng" aria-expanded="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+                </button>
+            </div>
+
+            <div class="sidebar-scroll-area">
+                <nav class="sidebar-nav">
+                    @if (isEmployeeOnly)
+                    {
+                        <div class="menu-group-title">Cá nhân</div>
+                        <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="@(currentAction == "Index" ? "active" : null)"><span>Hồ sơ của tôi</span></a>
+                        
+                        <a asp-area="Employee" asp-controller="Home" asp-action="Attendance" class="@(currentAction == "Attendance" ? "active" : null)"><span>Bảng chấm công tháng</span></a>
+                        <div class="menu-group-title">Đề xuất &amp; phê duyệt</div>
+                        <a asp-area="Employee" asp-controller="Home" asp-action="RequestLeave" class="@(currentAction == "RequestLeave" ? "active" : null)"><span>Xin nghỉ phép</span></a>
+                    
+                        <a asp-area="Employee" asp-controller="Home" asp-action="RequestOvertime" class="@(currentAction == "RequestOvertime" ? "active" : null)"><span>Đăng ký tăng ca</span></a>
+                        <div class="menu-group-title">Khác</div>
+                        @await Component.InvokeAsync("NotificationMenu")
+                        <a asp-area="HR" asp-controller="NoiBo" asp-action="Index" class="@(currentController == "NoiBo" ? "active" : null)"><span>Thông tin nội bộ</span></a>
+                    }
+                    else
+                    {
+                        @if (hasEmployeeProfile)
+                        {
+                            <div class="menu-group-title">Cá nhân</div>
+                            <a asp-area="Employee" asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["area"]?.ToString() == "Employee" && currentAction == "Index" ? "active" : null)"><span>Hồ sơ của tôi</span></a>
+                            <a asp-area="Employee" asp-controller="Home" asp-action="Attendance" class="@(ViewContext.RouteData.Values["area"]?.ToString() == "Employee" && currentAction == "Attendance" ? "active" : null)"><span>Bảng chấm công của tôi</span></a>
+                            <a asp-area="Employee" asp-controller="Home" asp-action="RequestLeave" class="@(currentAction == "RequestLeave" ? "active" : null)"><span>Xin nghỉ phép</span></a>
+                            <a asp-area="Employee" asp-controller="Home" asp-action="RequestOvertime" class="@(currentAction == "RequestOvertime" ? "active" : null)"><span>Đăng ký tăng ca</span></a>
+                        }
+                        @if (isAdmin || isHr)
+                        {
+                            <div class="menu-group-title">Quản lý chung</div>
+                            <a asp-area="HR" asp-controller="Dashboard" asp-action="Index" class="@(currentController == "Dashboard" ? "active" : null)"><span>Tổng quan</span></a>
+                            <a asp-area="HR" asp-controller="NhanVien" asp-action="Index" class="@(currentController == "NhanVien" ? "active" : null)"><span>Nhân viên</span></a>
+                            <a asp-area="HR" asp-controller="PhongBan" asp-action="Index" class="@(currentController == "PhongBan" ? "active" : null)"><span>Phòng ban</span></a>
+                            <a asp-area="HR" asp-controller="ChucVu" asp-action="Index" class="@(currentController == "ChucVu" ? "active" : null)"><span>Chức vụ</span></a>
+                            <a asp-area="HR" asp-controller="HopDong" asp-action="Index" class="@(currentController == "HopDong" ? "active" : null)"><span>Hợp đồng</span></a>
+                            <!-- <a asp-area="HR" asp-controller="QuyTrinhNhanSu" asp-action="Index" class="@(currentController == "QuyTrinhNhanSu" ? "active" : null)"><span>Quy trình nhân sự</span></a> -->
+                            <div class="menu-group-title">Chấm công &amp; nghỉ phép</div>
+                            <a asp-area="HR" asp-controller="ChamCong" asp-action="Index" class="@(currentController == "ChamCong" ? "active" : null)"><span>Chấm công</span></a>
+                            <a asp-area="HR" asp-controller="YeuCau" asp-action="Index" class="@(currentController == "YeuCau" ? "active" : null)"><span>Yêu cầu</span></a>
+                            <!-- <a href="@faceAttendanceUrl" target="_blank" rel="noopener"><span>Kiosk cửa văn phòng</span></a> -->
+                            <a href="@faceEnrollmentUrl" target="_blank" rel="noopener"><span>Đăng ký khuôn mặt</span></a>
+                            <a asp-area="HR" asp-controller="NgayPhep" asp-action="Index" class="@(currentController == "NgayPhep" ? "active" : null)"><span>Quỹ phép</span></a>
+                            <div class="menu-group-title">Lương &amp; chế độ</div>
+                            <a asp-area="HR" asp-controller="Luong" asp-action="Index" class="@(currentController == "Luong" ? "active" : null)"><span>Bảng lương</span></a>
+                            <a asp-area="HR" asp-controller="PhuCap" asp-action="Index" class="@(currentController == "PhuCap" ? "active" : null)"><span>Phụ cấp</span></a>
+                            <a asp-area="HR" asp-controller="Bhxh" asp-action="Index" class="@(currentController == "Bhxh" ? "active" : null)"><span>BHXH</span></a>
+                            <a asp-area="HR" asp-controller="CheDo" asp-action="Index" class="@(currentController == "CheDo" ? "active" : null)"><span>Chế độ &amp; điều chỉnh</span></a>
+                            <div class="menu-group-title">Truyền thông &amp; báo cáo</div>
+                            <a asp-area="HR" asp-controller="ThongBao" asp-action="Index" class="@(currentController == "ThongBao" ? "active" : null)"><span>Thông báo</span></a>
+                            <a asp-area="HR" asp-controller="NoiBo" asp-action="Index" class="@(currentController == "NoiBo" ? "active" : null)"><span>Cổng nội bộ</span></a>
+                            <a asp-area="HR" asp-controller="BaoCao" asp-action="Index" class="@(currentController == "BaoCao" ? "active" : null)"><span>Báo cáo</span></a>
+                            @if (hasEmployeeProfile)
+                            {
+                                <div class="menu-group-title">Khác</div>
+                                @await Component.InvokeAsync("NotificationMenu")
+                            }
+                        }
+                        else if (isManager)
+                        {
+                            <div class="menu-group-title">Quản lý phòng ban</div>
+                            <a asp-area="HR" asp-controller="NhanVien" asp-action="Index" class="@(currentController == "NhanVien" ? "active" : null)"><span>Nhân viên phòng ban</span></a>
+                            <!-- <a asp-area="HR" asp-controller="QuyTrinhNhanSu" asp-action="Index" class="@(currentController == "QuyTrinhNhanSu" ? "active" : null)"><span>Quy trình nhân sự</span></a> -->
+                            <a asp-area="HR" asp-controller="ChamCong" asp-action="Index" class="@(currentController == "ChamCong" ? "active" : null)"><span>Chấm công phòng ban</span></a>
+                            <a asp-area="HR" asp-controller="YeuCau" asp-action="Index" class="@(currentController == "YeuCau" ? "active" : null)"><span>Yêu cầu</span></a>
+                            <div class="menu-group-title">Khác</div>
+                            @await Component.InvokeAsync("NotificationMenu")
+                            <a asp-area="HR" asp-controller="NoiBo" asp-action="Index" class="@(currentController == "NoiBo" ? "active" : null)"><span>Cổng nội bộ</span></a>
+                        }
+                    }
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <nav class="sidebar-nav">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-area="HR" asp-controller="TaiKhoan" asp-action="Index" class="@(currentController == "TaiKhoan" ? "active" : null)"><span>Cài đặt &amp; tài khoản</span></a>
+                    }
+                    else
+                    {
+                        <a asp-area="" asp-controller="Auth" asp-action="ChangePassword"><span>Cài đặt tài khoản</span></a>
+                    }
+                </nav>
+                <div class="sidebar-version">TIC HRM · v1.0</div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="topbar">
+                <div class="topbar-heading">
+                    <button class="menu-toggle" type="button" data-sidebar-toggle aria-label="Mở thanh điều hướng">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+                    </button>
+                    <div>
+                        <span class="topbar-eyebrow">TIC Human Resources</span>
+                        <h1 class="topbar-title">@ViewData["Title"]</h1>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <button class="user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        @if (hasEmployeeProfile)
+                        {
+                            <img class="avatar avatar-image" src="@Url.Action("Employee", "Avatar", new { area = "", id = currentEmployeeId })" alt="Ảnh đại diện của @currentDisplayName" onerror="this.hidden=true;this.nextElementSibling.hidden=false;" />
+                            <span class="avatar" hidden>@currentDisplayName[0]</span>
+                        }
+                        else
+                        {
+                            <span class="avatar">@currentDisplayName[0]</span>
+                        }
+                        <span class="user-copy d-none d-sm-flex">
+                            <strong>@currentDisplayName</strong>
+                            <small>@currentRoleLabel</small>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                        @if (hasEmployeeProfile && (User.IsInRole("NhanVien") || User.IsInRole("HR") || User.IsInRole("QuanLy")))
+                        {
+                            <li><a class="dropdown-item" asp-area="Employee" asp-controller="Home" asp-action="Index">Hồ sơ của tôi</a></li>
+                        }
+                        <li><a class="dropdown-item" asp-area="" asp-controller="Auth" asp-action="ChangePassword">Đổi mật khẩu</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post">
+                                <button class="dropdown-item text-danger" type="submit">Đăng xuất</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <main class="page-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+}
+else
+{
+    @RenderBody()
+}
+
+<div id="toast-container" class="toast-container-root"></div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+
+@if (TempData["Success"] is string successMsg)
+{
+    var toastActionText = TempData["ToastActionText"] as string;
+    var toastActionUrl = TempData["ToastActionUrl"] as string;
+    if (!string.IsNullOrWhiteSpace(toastActionText) && !string.IsNullOrWhiteSpace(toastActionUrl))
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                showToast(
+                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(successMsg)),
+                    "success",
+                    8000,
+                    {
+                        text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(toastActionText)),
+                        url: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(toastActionUrl))
+                    });
+            });
+        </script>
+    }
+    else
+    {
+        <script>document.addEventListener("DOMContentLoaded", function () { showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(successMsg)), "success"); });</script>
+    }
+}
+@if (TempData["Error"] is string errorMsg)
+{
+    <script>document.addEventListener("DOMContentLoaded", function () { showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(errorMsg)), "error"); });</script>
+}
+@if (TempData["Warning"] is string warningMsg)
+{
+    <script>document.addEventListener("DOMContentLoaded", function () { showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(warningMsg)), "warning"); });</script>
+}
+@if (TempData["Info"] is string infoMsg)
+{
+    <script>document.addEventListener("DOMContentLoaded", function () { showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(infoMsg)), "info"); });</script>
+}
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

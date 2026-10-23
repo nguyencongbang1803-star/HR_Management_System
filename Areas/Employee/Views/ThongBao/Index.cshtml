@@ -1,0 +1,9 @@
+@model IReadOnlyList<ThongBaoCaNhan>
+@{ViewData["Title"]="Thông báo";var selected=ViewBag.Type as string;}
+<div class="page-container">
+ <div class="custom-panel d-flex justify-content-between align-items-center flex-wrap gap-3"><div><div class="panel-header mb-1">Thông báo</div></div><form asp-action="MarkRead" method="post"><button class="btn-green-outline">Đánh dấu tất cả đã đọc</button></form></div>
+ <div class="custom-panel"><div class="d-flex gap-2 flex-wrap mb-4"><a asp-action="Index" class="btn-green-outline @(selected is null?"active":"")">Tất cả</a><a asp-action="Index" asp-route-type="YeuCau" class="btn-green-outline">Yêu cầu</a><a asp-action="Index" asp-route-type="BangLuong" class="btn-green-outline">Bảng lương</a><a asp-action="Index" asp-route-type="DiTre" class="btn-green-outline">Đi trễ</a></div>
+ @foreach(var item in Model){<div class="border-bottom py-3 @(item.DaDoc?"":"bg-light")" style="padding-left:12px;padding-right:12px;border-radius:8px;"><div class="d-flex justify-content-between gap-3"><strong>@item.TieuDe</strong><small class="text-muted text-nowrap">@item.NgayTao.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></div><div class="text-muted mt-1" style="white-space:pre-line">@item.NoiDung</div>@if(!item.DaDoc){<form asp-action="MarkRead" method="post" class="mt-2"><input type="hidden" name="id" value="@item.ID"/><button class="btn btn-link p-0">Đánh dấu đã đọc</button></form>}else if(item.DuongDan is not null){<a href="@item.DuongDan" class="small d-inline-block mt-2">Xem chi tiết</a>}</div>}
+ @if(!Model.Any()){<div class="text-center text-muted py-5">Chưa có thông báo.</div>}
+ </div>
+</div>

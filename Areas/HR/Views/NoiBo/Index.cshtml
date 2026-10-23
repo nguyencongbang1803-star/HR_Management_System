@@ -1,0 +1,280 @@
+@model InternalPortalViewModel
+@{
+    ViewData["Title"]="Cổng thông tin nội bộ";
+    var canManage=User.IsInRole("Admin")||User.IsInRole("HR");
+    var departments=(IEnumerable<QLNS.Models.Entities.PhongBan>)ViewBag.PhongBans;
+    var positions=(IEnumerable<QLNS.Models.Entities.ChucVu>)ViewBag.ChucVus;
+}
+
+<div class="page-container">
+    <div class="custom-panel d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h4 style="color: #4a5468; font-weight: 700; margin-bottom: 5px;">Cổng thông tin nội bộ</h4>
+            <p class="text-muted mb-0">Chính sách, thông báo, khảo sát và trợ lý tra cứu quy chế.</p>
+        </div>
+    </div>
+
+    <!-- Hỏi trợ lý quy chế -->
+    <!-- <div class="custom-panel">
+        <div class="panel-header">Hỏi trợ lý quy chế</div>
+        <form method="get" class="d-flex gap-3 align-items-center m-0" data-auto-submit-search>
+            <input name="q" value="@Model.ChatQuestion" class="custom-input" placeholder="Ví dụ: quy định nghỉ phép, làm thêm giờ..."/>
+        </form>
+        @if(Model.ChatQuestion is not null){
+            <div class="mt-3">
+                @if(Model.ChatResults.Count==0){
+                    <div class="text-muted">Không tìm thấy nội dung phù hợp. Hãy thử từ khóa khác hoặc liên hệ HR.</div>
+                }
+                @foreach(var x in Model.ChatResults){
+                    <div class="border-top py-3 mt-2">
+                        <strong style="color: #4a5468;">@x.Title</strong>
+                        <div class="mb-2">@x.Summary</div>
+                        @if(x.Type=="Document"){
+                            <a asp-action="DownloadDocument" asp-route-id="@x.Id" class="small btn-green-outline" style="padding: 2px 10px; font-size: 12px; text-decoration:none;">Mở tài liệu</a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div> -->
+
+    @if(canManage){
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="custom-panel h-100 mb-0">
+                    <div class="panel-header">Phát hành tài liệu</div>
+                    <form asp-action="CreateDocument" method="post" enctype="multipart/form-data" class="row g-3 m-0" data-audience-form>
+                        <div class="col-8">
+                            <input name="title" required class="custom-input" placeholder="Tiêu đề"/>
+                        </div>
+                        <div class="col-4">
+                            <select name="category" class="custom-input form-select">
+                                <option value="ChinhSach">Chính sách</option>
+                                <option value="QuyDinh">Quy định</option>
+                                <option value="DaoTao">Đào tạo</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <textarea name="summary" class="custom-input" rows="2" placeholder="Tóm tắt để tra cứu"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <select name="scope" class="custom-input form-select" data-audience-scope>
+                                <option value="All">Toàn công ty</option>
+                                <option value="Position">Theo chức vụ</option>
+                                <option value="Department">Theo phòng ban</option>
+                            </select>
+                        </div>
+                        <div class="col-6" data-audience-target="Position" hidden>
+                            <select name="positionId" class="custom-input form-select" disabled>
+                                <option value="">Chọn chức vụ</option>
+                                @foreach(var position in positions){
+                                    <option value="@position.ID">@position.Chucvu</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12" data-audience-target="Department" hidden>
+                            <select name="departmentId" class="custom-input form-select" disabled>
+                                <option value="">Chọn phòng ban</option>
+                                @foreach(var department in departments){
+                                    <option value="@department.ID">@department.Tenphongban</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-8">
+                            <input name="attachments" multiple type="file" class="custom-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"/>
+                            <small class="text-muted">Có thể chọn nhiều tệp PDF, Word hoặc hình ảnh.</small>
+                        </div>
+                        <div class="col-4 d-flex align-items-center">
+                            <div class="form-check">
+                                <input name="required" value="true" type="checkbox" class="form-check-input" id="reqConfirm"/>
+                                <label class="form-check-label custom-label mb-0" for="reqConfirm" style="margin-top:2px;">Bắt buộc xác nhận</label>
+                            </div>
+                        </div>
+                        <div class="col-12 text-end mt-2">
+                            <button class="btn-green-solid">Phát hành</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="custom-panel h-100 mb-0">
+                    <div class="panel-header">Đăng thông báo</div>
+                    <form asp-action="CreateAnnouncement" method="post" class="row g-3 m-0" data-audience-form>
+                        <div class="col-12">
+                            <input name="title" required class="custom-input" placeholder="Tiêu đề"/>
+                        </div>
+                        <div class="col-12">
+                            <textarea name="content" required class="custom-input" rows="3" placeholder="Nội dung"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <select name="scope" class="custom-input form-select" data-audience-scope>
+                                <option value="All">Toàn công ty</option>
+                                <option value="Position">Theo chức vụ</option>
+                                <option value="Department">Theo phòng ban</option>
+                            </select>
+                        </div>
+                        <div class="col-6" data-audience-target="Position" hidden>
+                            <select name="positionId" class="custom-input form-select" disabled>
+                                <option value="">Chọn chức vụ</option>
+                                @foreach(var position in positions){
+                                    <option value="@position.ID">@position.Chucvu</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12" data-audience-target="Department" hidden>
+                            <select name="departmentId" class="custom-input form-select" disabled>
+                                <option value="">Chọn phòng ban</option>
+                                @foreach(var department in departments){
+                                    <option value="@department.ID">@department.Tenphongban</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input name="end" type="date" class="custom-input"/>
+                        </div>
+                        <div class="col-6 d-flex align-items-center justify-content-between">
+                            <div class="form-check m-0">
+                                <input name="pinned" value="true" type="checkbox" class="form-check-input" id="pinned"/>
+                                <label for="pinned" class="form-check-label custom-label mb-0" style="margin-top:2px;">Ghim</label>
+                            </div>
+                            <button class="btn-green-solid">Đăng</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="custom-panel h-100 mb-0">
+                <div class="panel-header d-flex justify-content-between align-items-center border-bottom pb-3 mb-0">
+                    <strong style="color: #4a5468; font-size: 16px;">Tài liệu & chính sách</strong>
+                </div>
+                <div class="panel-body px-0 pt-3 pb-0">
+                    @foreach(var x in Model.Documents){
+                        <div class="border-bottom py-3 px-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong style="color: #4a5468;">@x.TieuDe</strong>
+                                    <small class="d-block text-muted">@x.DanhMuc · @x.NgayPhatHanh.ToString("dd/MM/yyyy")</small>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    @foreach(var attachment in x.TepDinhKems){
+                                        <a asp-action="DownloadDocumentAttachment" asp-route-id="@attachment.ID" class="btn-green-outline" style="padding: 2px 10px; font-size: 12px; text-decoration:none;">@attachment.TenFileGoc</a>
+                                    }
+                                    @if(x.TepDinhKems.Count==0&&x.DuongDan is not null){
+                                        <a asp-action="DownloadDocument" asp-route-id="@x.ID" class="btn-green-outline" style="padding: 2px 10px; font-size: 12px; text-decoration:none;">@x.TenFileGoc</a>
+                                    }
+                                    @if(x.BatBuocXacNhan&&!Model.ConfirmedDocumentIds.Contains(x.ID)){
+                                        <form asp-action="ConfirmDocument" asp-route-id="@x.ID" method="post" class="m-0">
+                                            <button class="btn-green-solid" style="padding: 2px 10px; font-size: 12px;">Đã đọc</button>
+                                        </form>
+                                    }
+                                    else if(x.BatBuocXacNhan){
+                                        <span class="badge-status status-success" style="font-size: 11px;">Đã xác nhận</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 14px;">@x.TomTat</div>
+                        </div>
+                    }
+                    @if(Model.Documents.Count==0){
+                        <div class="text-center py-4" style="color:#5c6c85;">Chưa có tài liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="custom-panel h-100 mb-0">
+                <div class="panel-header d-flex justify-content-between align-items-center border-bottom pb-3 mb-0">
+                    <strong style="color: #4a5468; font-size: 16px;">Thông báo</strong>
+                </div>
+                <div class="panel-body px-0 pt-3 pb-0">
+                    @foreach(var x in Model.Announcements){
+                        <article class="border-bottom py-3 px-3">
+                            <h6 class="d-flex align-items-center gap-2" style="color: #4a5468; font-weight: 600;">@if(x.Ghim){<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Đã ghim"><path d="M12 17v5"></path><path d="M5 17h14"></path><path d="M6 3h12l-2 7 3 3H5l3-3-2-7z"></path></svg>} <span>@x.TieuDe</span></h6>
+                            <p class="mb-2" style="font-size: 14px; color: #4a5468;">@x.NoiDung</p>
+                            <small class="text-muted">@x.NguoiTao · @x.BatDau.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                            
+                            @foreach(var c in x.BinhLuans.OrderBy(c=>c.NgayTao)){
+                                <div class="small bg-light rounded p-2 mt-2">
+                                    <strong style="color: #4a5468;">@(c.TaiKhoan?.Email)</strong>: <span style="color: #5c6c85;">@c.NoiDung</span>
+                                </div>
+                            }
+                            <form asp-action="Comment" method="post" class="d-flex gap-2 mt-3 m-0">
+                                <input type="hidden" name="id" value="@x.ID"/>
+                                <input name="content" maxlength="1000" required class="custom-input flex-grow-1" style="padding: 4px 10px; font-size: 13px;" placeholder="Viết bình luận..."/>
+                                <button class="btn-green-outline" style="padding: 4px 15px; font-size: 13px;">Gửi</button>
+                            </form>
+                        </article>
+                    }
+                    @if(Model.Announcements.Count==0){
+                        <div class="text-center py-4" style="color:#5c6c85;">Chưa có thông báo.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if(canManage){
+        <div class="custom-panel">
+            <div class="panel-header">Tạo khảo sát nhanh</div>
+            <form asp-action="CreateSurvey" method="post" class="row g-3 m-0">
+                <div class="col-md-4">
+                    <input name="title" required class="custom-input" placeholder="Tên khảo sát"/>
+                </div>
+                <div class="col-md-4">
+                    <input name="question" required class="custom-input" placeholder="Câu hỏi"/>
+                </div>
+                <div class="col-md-4">
+                    <input name="end" type="date" class="custom-input"/>
+                </div>
+                <div class="col-10">
+                    <textarea name="options" required class="custom-input" rows="2" placeholder="Mỗi lựa chọn một dòng"></textarea>
+                </div>
+                <div class="col-2 d-flex align-items-end">
+                    <button class="btn-green-solid w-100">Tạo khảo sát</button>
+                </div>
+            </form>
+        </div>
+    }
+
+    <div class="custom-panel">
+        <div class="panel-header d-flex justify-content-between align-items-center border-bottom pb-3 mb-0">
+            <strong style="color: #4a5468; font-size: 16px;">Khảo sát đang mở</strong>
+        </div>
+        <div class="panel-body px-0 pt-3 pb-0">
+            @foreach(var x in Model.Surveys){
+                <div class="border-bottom py-3 px-3">
+                    <strong style="color: #4a5468;">@x.TieuDe</strong>
+                    <p class="mb-2" style="font-size: 14px; color: #5c6c85;">@x.CauHoi</p>
+                    @if(!Model.AnsweredSurveyIds.Contains(x.ID)){
+                        <form asp-action="Vote" method="post" class="m-0">
+                            <input type="hidden" name="surveyId" value="@x.ID"/>
+                            @foreach(var o in x.LuaChons){
+                                <div class="form-check mb-2">
+                                    <input type="radio" class="form-check-input" name="optionId" value="@o.ID" id="opt-@o.ID" required/>
+                                    <label class="form-check-label custom-label mb-0" for="opt-@o.ID" style="margin-top:2px;">@o.NoiDung</label>
+                                </div>
+                            }
+                            <button class="btn-green-solid mt-2" style="padding: 4px 15px; font-size: 13px;">Gửi trả lời</button>
+                        </form>
+                    }
+                    else {
+                        <div class="small text-success mb-2 fw-medium">Bạn đã trả lời.</div>
+                        @foreach(var o in x.LuaChons){
+                            <div class="small text-muted mb-1">
+                                <span style="color: #4a5468;">@o.NoiDung:</span> @o.PhieuKhaoSats.Count phiếu
+                            </div>
+                        }
+                    }
+                </div>
+            }
+            @if(Model.Surveys.Count==0){
+                <div class="text-center py-4" style="color:#5c6c85;">Chưa có khảo sát.</div>
+            }
+        </div>
+    </div>
+</div>

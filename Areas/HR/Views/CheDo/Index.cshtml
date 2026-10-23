@@ -1,0 +1,99 @@
+@{
+    ViewData["Title"] = "Chế độ & điều chỉnh";
+    var employees = (IEnumerable<NhanVien>)ViewBag.Employees;
+    var adjustments = (IEnumerable<ThuongPhat>)ViewBag.Adjustments;
+}
+
+<div class="page-container">
+    <div class="custom-panel">
+        <div class="panel-header" data-bs-toggle="collapse" data-bs-target="#searchSection">
+            <span>Thưởng, phạt và thu nhập khác</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div id="searchSection" class="collapse show">
+            <form method="get" data-auto-submit-search>
+                <div class="row g-4 align-items-end">
+                    <div class="col-md-5">
+                        <label class="custom-label">Nhân viên</label>
+                        <input name="employeeSearch" value="@ViewBag.EmployeeSearch" class="custom-input"
+                               placeholder="Nhập mã hoặc tên nhân viên" autocomplete="off"/>
+                    </div>
+                    <div class="col-md-7 d-flex justify-content-end gap-3">
+                        <a class="btn-green-outline" asp-action="Index">Tất cả</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="custom-panel d-flex justify-content-end gap-3 flex-wrap">
+        <button type="button" class="btn-green-solid" data-bs-toggle="modal" data-bs-target="#adjustment">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Thưởng / Phạt
+        </button>
+        <button type="button" class="btn-green-solid" data-bs-toggle="modal" data-bs-target="#otherIncome">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Thu nhập khác
+        </button>
+    </div>
+
+    <div class="custom-panel">
+        <div class="panel-header">Danh sách khoản điều chỉnh gần đây</div>
+        <div class="record-count">(@adjustments.Count()) Records Found</div>
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead><tr><th>Nhân viên</th><th>Loại</th><th>Lý do</th><th>Ngày áp dụng</th><th>Số tiền</th></tr></thead>
+                <tbody>
+                @foreach (var item in adjustments)
+                {
+                    <tr>
+                        <td><strong>@item.NhanVien?.Ten</strong><div class="small text-muted">@item.NhanVien?.MaNhanVien</div></td>
+                        <td><span class="badge-status @(item.Loai is "Thuong" or "ThuNhapKhac" ? "status-success" : "status-danger")">@(item.Loai == "Thuong" ? "Thưởng" : item.Loai == "Phat" ? "Phạt" : "Thu nhập khác")</span></td>
+                        <td>@item.LyDo</td>
+                        <td>@item.NgayApDung.ToString("dd/MM/yyyy")</td>
+                        <td><strong>@item.SoTien.ToString("N0") ₫</strong></td>
+                    </tr>
+                }
+                @if (!adjustments.Any())
+                {
+                    <tr><td colspan="5" class="text-center py-4 text-muted">Chưa có khoản thưởng, phạt hoặc thu nhập khác.</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adjustment" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="AddAdjustment" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Thêm thưởng/phạt</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <partial name="_EmployeeSelect" model="employees"/>
+                <div class="row mb-3">
+                    <div class="col"><label class="custom-label">Loại</label><select name="Loai" class="form-select"><option value="Thuong">Thưởng</option><option value="Phat">Phạt</option></select></div>
+                    <div class="col"><label class="custom-label">Ngày áp dụng</label><input name="NgayApDung" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="custom-input"/></div>
+                </div>
+                <div class="mb-3"><label class="custom-label required">Lý do</label><input name="LyDo" required maxlength="500" class="custom-input"/></div>
+                <div><label class="custom-label required">Số tiền</label><input name="SoTien" type="number" min="0" required class="custom-input"/></div>
+            </div>
+            <div class="modal-footer"><button class="btn-green-solid">Lưu</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="otherIncome" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="AddOtherIncome" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Thêm thu nhập khác</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="Loai" value="ThuNhapKhac"/>
+                <partial name="_EmployeeSelect" model="employees"/>
+                <div class="mb-3"><label class="custom-label">Ngày áp dụng</label><input name="NgayApDung" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="custom-input"/></div>
+                <div class="mb-3"><label class="custom-label required">Lý do hoặc nguồn thu</label><input name="LyDo" required maxlength="500" class="custom-input"/></div>
+                <div><label class="custom-label required">Số tiền</label><input name="SoTien" type="number" min="0" required class="custom-input"/></div>
+            </div>
+            <div class="modal-footer"><button class="btn-green-solid">Lưu</button></div>
+        </form>
+    </div>
+</div>
